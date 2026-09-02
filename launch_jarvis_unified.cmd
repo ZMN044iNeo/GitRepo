@@ -2,6 +2,12 @@
 setlocal
 cd /d "%~dp0"
 
+where pythonw >nul 2>nul
+if not errorlevel 1 (
+    pythonw "%~dp0launch_jarvis_unified.py"
+    exit /b %ERRORLEVEL%
+)
+
 where py >nul 2>nul
 if not errorlevel 1 (
     py -3 "%~dp0launch_jarvis_unified.py"
