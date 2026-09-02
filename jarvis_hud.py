@@ -1005,7 +1005,7 @@ class JarvisHUD(tk.Tk):
         self.log_chat("system", f"Router: {self._router_init_status}")
         self.update_status("BOOTING")
         self.set_matrix_mode("DEFAULT")
-        self.start_quantum_particles()
+        # Don't start particles yet - let cinematic finish first
         self.cinematic_view()
         self.after(1500, lambda: self.update_status("ONLINE"))
 
@@ -1112,6 +1112,7 @@ class JarvisHUD(tk.Tk):
             if step > 20:
                 self.sync_beam_canvas.delete("all")
                 self.cinematic_active = False
+                self.start_quantum_particles()
                 self.start_holographic_core()
                 return
             alpha = max(0, 255 - step * 12)
@@ -1197,7 +1198,10 @@ class JarvisHUD(tk.Tk):
             self.animate_particles()
 
     def animate_particles(self):
-        if not self.particle_running:
+        if not self.particle_running or self.cinematic_active:
+            # Skip rendering during cinematic sequence
+            if self.particle_running:
+                self.after(40, self.animate_particles)
             return
 
         # Only delete runtime animation elements, preserve cinematic elements
