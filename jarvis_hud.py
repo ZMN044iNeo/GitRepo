@@ -221,6 +221,11 @@ class JarvisHUD(tk.Tk):
         )
         self.sync_beam_canvas.place(x=240, y=10)
 
+        self.labels_canvas = tk.Canvas(
+            self.main_canvas, width=1280, height=300, bg="", highlightthickness=0
+        )
+        self.labels_canvas.place(x=0, y=0)  # Placed last = on top
+
         self.waveform_canvas = tk.Canvas(
             self.main_canvas, width=240, height=80, bg="#000000", highlightthickness=0
         )
@@ -1085,7 +1090,9 @@ class JarvisHUD(tk.Tk):
         for x in range(0, 1280, 40):
             self.main_canvas.create_line(x, 0, x, 300, fill="#0b1520", width=1, tags="cinematic_grid")
         for y in range(0, 300, 40):
-            self.main_canvas.create_line(0, y, 1280, y, fill="#0b1520", width=1, tags="cinematic_grid")
+            # Skip y=10-40 region (sync beam) to avoid corrupting it
+            if y < 10 or y > 40:
+                self.main_canvas.create_line(0, y, 1280, y, fill="#0b1520", width=1, tags="cinematic_grid")
 
         self.sync_beam_canvas.delete("all")
         self.sync_beam_canvas.create_rectangle(
@@ -1101,17 +1108,18 @@ class JarvisHUD(tk.Tk):
                 self.start_blueprint_scan()
                 self.start_quantum_particles()
                 self.start_holographic_core()
-                # Redraw labels on top of canvases
+                # Redraw labels on labels_canvas (on top of everything)
                 cx, cy = 640, 150
-                self.main_canvas.create_text(
+                self.labels_canvas.delete("labels")
+                self.labels_canvas.create_text(
                     cx, cy - 165,
                     text="JARVIS",
-                    fill="#00FFFF", font=("Consolas", 14, "bold"), tags="cinematic_labels"
+                    fill="#00FFFF", font=("Consolas", 14, "bold"), tags="labels"
                 )
-                self.main_canvas.create_text(
+                self.labels_canvas.create_text(
                     cx, cy + 165,
                     text="CORE",
-                    fill="#00FFFF", font=("Consolas", 14, "bold"), tags="cinematic_labels"
+                    fill="#00FFFF", font=("Consolas", 14, "bold"), tags="labels"
                 )
                 return
             # Fade from cyan (0,255,255) to black (0,0,0)
