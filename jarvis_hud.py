@@ -116,6 +116,7 @@ class JarvisHUD(tk.Tk):
         # ============================
         self._build_ui()
         self.control_panel = JarvisControlPanel(self)
+        self.control_panel.place_forget()
 
         # ============================
         # SCHEDULE STARTUP
@@ -124,7 +125,6 @@ class JarvisHUD(tk.Tk):
         self.after(500, self._sync_ready)
         self.after(100, self._poll_queue)
         self.after(200, self._show_in_foreground)
-        self.after(400, self.control_panel.show_in_foreground)
 
     def _show_in_foreground(self):
         """Ensure a windowless shortcut launch is visible to the user."""
@@ -282,6 +282,7 @@ class JarvisHUD(tk.Tk):
         else:
             self.control_panel.place(x=18, y=68, width=320, height=620)
             self.control_panel.tkraise()
+            self.control_panel.focus_set()
 
     def toggle_fullscreen(self):
         try:

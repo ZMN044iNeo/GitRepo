@@ -18,7 +18,6 @@ class JarvisControlPanel(tk.Frame):
         self.hud = hud
         self.configure(width=320, height=620)
         self.pack_propagate(False)
-        self.place(x=18, y=68, width=320, height=620)
         self.place_forget()
 
         self.status_var = tk.StringVar()
