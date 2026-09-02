@@ -219,6 +219,7 @@ class JarvisHUD(tk.Tk):
             self.main_canvas, width=240, height=200, bg="#000000", highlightthickness=0
         )
         self.particle_canvas.place(x=10, y=40)
+        self.particle_canvas.place_forget()  # Hide unused canvas
 
         self.waveform_canvas = tk.Canvas(
             self.main_canvas, width=240, height=80, bg="#000000", highlightthickness=0
@@ -1010,6 +1011,7 @@ class JarvisHUD(tk.Tk):
         self.main_canvas.delete("cinematic_overlay")
         self.main_canvas.delete("cinematic_arc")
         self.main_canvas.delete("cinematic_grid")
+        self.main_canvas.delete("cinematic_labels")
         self.sync_beam_canvas.delete("all")
         self.cinematic_arc_reactor()
 
@@ -1067,18 +1069,7 @@ class JarvisHUD(tk.Tk):
                     fill="#00FFFF", outline="", tags="cinematic_arc"
                 )
                 
-                # Labels
-                self.main_canvas.create_text(
-                    cx, cy - 165,
-                    text="JARVIS",
-                    fill="#00FFFF", font=("Consolas", 14, "bold"), tags="cinematic_arc"
-                )
-                self.main_canvas.create_text(
-                    cx, cy + 165,
-                    text="CORE",
-                    fill="#00FFFF", font=("Consolas", 14, "bold"), tags="cinematic_arc"
-                )
-                
+                # Labels will be redrawn on top after canvases are placed
                 self.cinematic_grid()
 
         pulse()
@@ -1107,8 +1098,21 @@ class JarvisHUD(tk.Tk):
             if step > 20:
                 self.sync_beam_canvas.delete("all")
                 self.cinematic_active = False
+                self.start_blueprint_scan()
                 self.start_quantum_particles()
                 self.start_holographic_core()
+                # Redraw labels on top of canvases
+                cx, cy = 640, 150
+                self.main_canvas.create_text(
+                    cx, cy - 165,
+                    text="JARVIS",
+                    fill="#00FFFF", font=("Consolas", 14, "bold"), tags="cinematic_labels"
+                )
+                self.main_canvas.create_text(
+                    cx, cy + 165,
+                    text="CORE",
+                    fill="#00FFFF", font=("Consolas", 14, "bold"), tags="cinematic_labels"
+                )
                 return
             alpha = max(0, 255 - step * 12)
             self.sync_beam_canvas.itemconfig(
