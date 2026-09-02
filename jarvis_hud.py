@@ -68,23 +68,23 @@ class JarvisHUD(tk.Tk):
         # window that reveals the underlying desktop through the background.
 
         # ============================
-        # HUD STATE  (must come before any after() scheduling)
+        # ANIMATION STATE + MASTER LOOP CONTROLLER
         # ============================
-        self.matrix_mode    = "DEFAULT"
-        self.current_status = "BOOTING"
-        self.msg_queue      = queue.Queue()
+        # Animation flags
+        self.particle_running      = False
+        self.waveform_running      = False
+        self.daemon_running        = False
+        self.blueprint_scanning    = False
+        self.grid_pulse_running    = False
+        self.premium_running       = False
 
-        # Animation state
-        self.particle_running  = False
-        self.waveform_running  = False
-        self.daemon_running    = False
-        self.blueprint_scanning = False
-        self.particle_phase    = 0
-        self.waveform_phase    = 0
-        self.daemon_phase      = 0
-        self.blueprint_phase   = 0
-        self.grid_pulse_phase  = 0
-        self.premium_phase     = 0
+        # Animation phases
+        self.particle_phase        = 0
+        self.waveform_phase        = 0
+        self.daemon_phase          = 0
+        self.blueprint_phase       = 0
+        self.grid_pulse_phase      = 0
+        self.premium_phase         = 0
 
         # Voice state
         self.voice_running = False
@@ -130,6 +130,8 @@ class JarvisHUD(tk.Tk):
         self.after(500, self._sync_ready)
         self.after(100, self._poll_queue)
         self.after(200, self._show_in_foreground)
+        self.after(16, self.animation_loop)  # Start master animation loop (~60 FPS)
+        self.after(16, self.animation_loop)  # Start master animation loop (~60 FPS)
 
     def _show_in_foreground(self):
         """Ensure a windowless shortcut launch is visible to the user."""
@@ -138,6 +140,108 @@ class JarvisHUD(tk.Tk):
         self.attributes("-topmost", True)
         self.after(150, lambda: self.attributes("-topmost", False))
         self.focus_force()
+
+    # ============================================================
+    # MASTER ANIMATION LOOP
+    # ============================================================
+    def animation_loop(self):
+        """Unified animation loop that updates ONLY what is active."""
+
+        # -------------------------
+        # PARTICLES
+        # -------------------------
+        if self.particle_running:
+            self.particle_phase += 1
+            self.animate_particles()
+
+        # -------------------------
+        # WAVEFORM
+        # -------------------------
+        if self.waveform_running:
+            self.waveform_phase += 1
+            self.animate_waveform()
+
+        # -------------------------
+        # DAEMON (terminal pulse)
+        # -------------------------
+        if self.daemon_running:
+            self.daemon_phase += 1
+            self.animate_daemon_pulse()
+
+        # -------------------------
+        # BLUEPRINT SCAN
+        # -------------------------
+        if self.blueprint_scanning:
+            self.blueprint_phase = (self.blueprint_phase + 1) % 200
+            self.animate_blueprint_scan()
+
+        # -------------------------
+        # GRID PULSE
+        # -------------------------
+        if self.grid_pulse_running:
+            self.grid_pulse_phase += 1
+            self.animate_grid_pulse()
+
+        # -------------------------
+        # PREMIUM MODE
+        # -------------------------
+        if self.premium_running:
+            self.premium_phase += 1
+            self.animate_premium()
+
+        # LOOP AGAIN
+        self.after(16, self.animation_loop)  # ~60 FPS
+
+    # ============================================================
+    # MASTER ANIMATION LOOP
+    # ============================================================
+    def animation_loop(self):
+        """Unified animation loop that updates ONLY what is active."""
+
+        # -------------------------
+        # PARTICLES
+        # -------------------------
+        if self.particle_running:
+            self.particle_phase += 1
+            self.animate_particles()
+
+        # -------------------------
+        # WAVEFORM
+        # -------------------------
+        if self.waveform_running:
+            self.waveform_phase += 1
+            self.animate_waveform()
+
+        # -------------------------
+        # DAEMON (terminal pulse)
+        # -------------------------
+        if self.daemon_running:
+            self.daemon_phase += 1
+            self.animate_daemon_pulse()
+
+        # -------------------------
+        # BLUEPRINT SCAN
+        # -------------------------
+        if self.blueprint_scanning:
+            self.blueprint_phase = (self.blueprint_phase + 1) % 200
+            self.animate_blueprint_scan()
+
+        # -------------------------
+        # GRID PULSE
+        # -------------------------
+        if self.grid_pulse_running:
+            self.grid_pulse_phase += 1
+            self.animate_grid_pulse()
+
+        # -------------------------
+        # PREMIUM MODE
+        # -------------------------
+        if self.premium_running:
+            self.premium_phase += 1
+            self.animate_premium()
+
+        # LOOP AGAIN
+        self.after(16, self.animation_loop)  # ~60 FPS
 
     def _voice_reactivity(self):
         if not self.voice_running:
@@ -1178,8 +1282,6 @@ class JarvisHUD(tk.Tk):
         if not self.particle_running:
             return
         # draw particles here
-        self.particle_phase += 1
-        self.after(40, self.animate_particles)
 
     # ============================================================
     # BLUEPRINT SCAN
@@ -1192,7 +1294,6 @@ class JarvisHUD(tk.Tk):
     def animate_blueprint_scan(self):
         if not self.blueprint_scanning:
             return
-        self.blueprint_phase = (self.blueprint_phase + 1) % 200
         self.blueprint_canvas.delete("all")
 
         # Dim engineering grid: background scan layer for 800x200 canvas
@@ -1214,7 +1315,6 @@ class JarvisHUD(tk.Tk):
         self.blueprint_canvas.create_rectangle(20, 20, 780, 180, outline="#0ad8ff", width=1)
         if self.blueprint_phase == 199:
             self.blueprint_scanning = False
-        self.after(40, self.animate_blueprint_scan)
 
     # ============================================================
     # VOICE WAVEFORM
@@ -1245,8 +1345,6 @@ class JarvisHUD(tk.Tk):
                 x, h / 2, x + 4, h / 2 - abs(y - h / 2),
                 fill="#00FFAA", outline=""
             )
-        self.waveform_phase += 1
-        self.after(40, self.animate_waveform)
 
     # ============================================================
     # DAEMON PULSE
@@ -1273,8 +1371,6 @@ class JarvisHUD(tk.Tk):
         self.main_canvas.create_rectangle(
             0, 0, 1280, 300, outline="", fill=f"#{alpha:02x}0000", tags="daemon_pulse"
         )
-        self.daemon_phase += 1
-        self.after(40, self.animate_daemon_pulse)
 
     # ============================================================
     # SYNC BEAM
