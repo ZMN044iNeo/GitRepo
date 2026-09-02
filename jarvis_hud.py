@@ -6,6 +6,7 @@ import re
 import importlib
 import base64
 import subprocess
+import sys
 from pathlib import Path
 
 # Optional runtime dependencies: the HUD must still boot in a local-safe mode
@@ -225,6 +226,12 @@ class JarvisHUD(tk.Tk):
             self.main_canvas, width=240, height=80, bg="#000000", highlightthickness=0
         )
         self.waveform_canvas.place(x=10, y=250)
+
+        # ---- z-order management (lift canvases to ensure proper layering) ----
+        self.sync_beam_canvas.lift()
+        self.blueprint_canvas.lift()
+        self.particle_canvas.lift()
+        self.waveform_canvas.lift()
 
         # ---- chat & console (read-only Text widgets) ----
         self.chat_box = tk.Text(
@@ -1168,95 +1175,9 @@ class JarvisHUD(tk.Tk):
             self.animate_particles()
 
     def animate_particles(self):
-        if not self.particle_running or self.cinematic_active:
-            # Skip rendering during cinematic sequence
-            if self.particle_running:
-                self.after(40, self.animate_particles)
+        if not self.particle_running:
             return
-
-        # Only delete runtime animation elements, preserve cinematic elements
-        self.main_canvas.delete("grid_overlay")
-        self.main_canvas.delete("runtime_arc_reactor")
-        self.main_canvas.delete("matrix_overlay")
-
-        # Background grid: dim and transparent when idle, brighter when active.
-        cx, cy = 640, 150
-        color = "#cc66ff" if self.matrix_mode == "QUANTUM" else "#00e5ff"
-        pulse = 0.5 + (math.sin(self.particle_phase / 12.0) + 1) / 2
-        self.premium_phase += 1
-
-        for x in range(0, 1280, 40):
-            self.main_canvas.create_line(
-                x, 0, x, 300,
-                fill="#1a3a52" if pulse < 0.7 else "#2a5a7f",
-                width=1,
-                tags="grid_overlay"
-            )
-        for y in range(0, 300, 40):
-            self.main_canvas.create_line(
-                0, y, 1280, y,
-                fill="#1a3a52" if pulse < 0.7 else "#2a5a7f",
-                width=1,
-                tags="grid_overlay"
-            )
-
-        # Arc reactor rings with enhanced visuals
-        for ring in (50, 85, 120):
-            r = ring + 8 * math.sin(self.premium_phase / 15.0)
-            self.main_canvas.create_oval(
-                cx - r, cy - r, cx + r, cy + r,
-                outline=color, width=2, tags="runtime_arc_reactor"
-            )
-
-        # Dense particle burst - more particles for premium look
-        for i in range(48):
-            angle = (self.particle_phase / 16.0) + (i / 7.0)
-            radius = 140 + 45 * math.sin(i / 3.0 + self.particle_phase / 25.0)
-            x = cx + radius * math.cos(angle)
-            y = cy + radius * math.sin(angle * 1.2)
-            size = 2.0 + 0.8 * math.sin(self.particle_phase / 20.0 + i)
-            self.main_canvas.create_oval(
-                x - size, y - size, x + size, y + size,
-                fill=color, outline="", tags="matrix_overlay"
-            )
-
-        # Outer reactor border
-        border_r = 130 + 5 * pulse
-        self.main_canvas.create_rectangle(
-            cx - border_r, cy - border_r, cx + border_r, cy + border_r,
-            outline=color, width=2, tags="runtime_arc_reactor"
-        )
-
-        self.main_canvas.create_oval(
-            cx - 24 - 3 * pulse, cy - 24 - 3 * pulse,
-            cx + 24 + 3 * pulse, cy + 24 + 3 * pulse,
-            outline=color, width=2, tags="matrix_overlay"
-        )
-
-        self.main_canvas.create_text(
-            cx, cy + 115,
-            text="QUANTUM MATRIX // ACTIVE",
-            fill=color,
-            font=("Consolas", 9, "bold"),
-            tags="matrix_overlay"
-        )
-
-        self.waveform_canvas.delete("all")
-        w, h = 240, 80
-        active_level = 0.3 + self.audio_level * 0.5
-        for x in range(0, w, 6):
-            phase = (self.particle_phase / 7.0) + (x / 16.0)
-            amp = 8 + (24 * active_level) * math.sin(phase)
-            y = h / 2 + amp
-            self.waveform_canvas.create_rectangle(
-                x, h / 2, x + 4, y,
-                fill="#00d9ff", outline=""
-            )
-            self.waveform_canvas.create_rectangle(
-                x, h / 2, x + 4, h / 2 - amp,
-                fill="#00d9ff", outline=""
-            )
-
+        # draw particles here
         self.particle_phase += 1
         self.after(40, self.animate_particles)
 
