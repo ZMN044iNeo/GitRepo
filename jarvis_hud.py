@@ -91,7 +91,7 @@ class JarvisHUD(tk.Tk):
         self.daemon_running        = True
         self.blueprint_scanning    = True
         self.grid_pulse_running    = True
-        self.premium_running       = Tru
+        self.premium_running       = True
 
         # Animation phases
         self.particle_phase        = 0
