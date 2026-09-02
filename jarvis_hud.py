@@ -58,14 +58,13 @@ class JarvisHUD(tk.Tk):
         self.geometry("1600x900")
         self.minsize(1200, 760)
         self.configure(bg="#020b12")
-        self.attributes("-alpha", 0.98)
+        self.attributes("-alpha", 1.0)
         self.fullscreen_mode = False
         self.bind("<F11>", lambda event=None: self.toggle_fullscreen())
         self.bind("<Escape>", lambda event=None: self.exit_fullscreen())
-        try:
-            self.attributes("-transparentcolor", "#020b12")
-        except Exception:
-            pass
+
+        # The HUD should behave as a solid desktop shell, not a translucent
+        # window that reveals the underlying desktop through the background.
 
         # ============================
         # HUD STATE  (must come before any after() scheduling)
