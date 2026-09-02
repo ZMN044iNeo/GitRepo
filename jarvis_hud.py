@@ -91,7 +91,7 @@ class JarvisHUD(tk.Tk):
         self.daemon_running        = True
         self.blueprint_scanning    = True
         self.grid_pulse_running    = True
-        self.premium_running       = True
+        self.premium_running       = Tru
 
         # Animation phases
         self.particle_phase        = 0
@@ -154,6 +154,15 @@ class JarvisHUD(tk.Tk):
         self.attributes("-topmost", True)
         self.after(150, lambda: self.attributes("-topmost", False))
         self.focus_force()
+
+    def auto_run_animations(self):
+        """Enable all animation engines simultaneously."""
+        self.particle_running      = True
+        self.waveform_running      = True
+        self.blueprint_scanning    = True
+        self.daemon_running        = True
+        self.grid_pulse_running    = True
+        self.premium_running       = True
 
     # ============================================================
     # MASTER ANIMATION LOOP (60 FPS unified renderer)
@@ -1072,6 +1081,9 @@ class JarvisHUD(tk.Tk):
         self.core_phase = 0
         self.grid_pulse_phase = 0
         self.blueprint_phase = 0
+
+        # Enable all animation engines
+        self.auto_run_animations()
 
         # Start sequence
         self.after(100, self._cinematic_step_1)
