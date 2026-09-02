@@ -32,13 +32,13 @@ if ($Hologram) {
     $args += "--hologram"
 }
 
-Write-Host "╔════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║   JARVIS V4.0 UNIFIED LAUNCHER        ║" -ForegroundColor Cyan
-Write-Host "║   Tkinter HUD + WebSocket Sync        ║" -ForegroundColor Cyan
+Write-Host "+----------------------------------------+" -ForegroundColor Cyan
+Write-Host "|   JARVIS V4.0 UNIFIED LAUNCHER        |" -ForegroundColor Cyan
+Write-Host "|   Tkinter HUD + WebSocket Sync        |" -ForegroundColor Cyan
 if ($Hologram) {
-    Write-Host "║   + Streamlit Hologram Dashboard      ║" -ForegroundColor Cyan
+    Write-Host "|   + Streamlit Hologram Dashboard      |" -ForegroundColor Cyan
 }
-Write-Host "╚════════════════════════════════════════╝" -ForegroundColor Cyan
+Write-Host "+----------------------------------------+" -ForegroundColor Cyan
 Write-Host ""
 
 Write-Host "[INIT] Python: $python" -ForegroundColor Yellow

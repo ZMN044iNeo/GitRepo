@@ -32,7 +32,8 @@ if (-not $desktop) {
     throw "No writable Desktop location was found."
 }
 
-$shortcutPath = Join-Path $desktop "JARVIS HUD V4.0.lnk"
+$shortcutPath = Join-Path $desktop "Jarvis.lnk"
+$legacyShortcutPath = Join-Path $desktop "JARVIS HUD V4.0.lnk"
 $launcherPath = Join-Path $PSScriptRoot "launch_jarvis_unified.ps1"
 
 if (-not (Test-Path -LiteralPath $launcherPath)) {
@@ -48,5 +49,9 @@ $shortcut.WindowStyle = 1
 $shortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,220"
 $shortcut.Description = "Launch JARVIS HUD V4.0 with live hologram telemetry"
 $shortcut.Save()
+
+if ($legacyShortcutPath -ne $shortcutPath -and (Test-Path -LiteralPath $legacyShortcutPath)) {
+    Remove-Item -LiteralPath $legacyShortcutPath -Force
+}
 
 Write-Host "Created shortcut: $shortcutPath"
