@@ -86,12 +86,12 @@ class JarvisHUD(tk.Tk):
         # ANIMATION FLAGS + PHASES (Unified Master Loop)
         # ============================================================
         # Animation flags
-        self.particle_running      = False
-        self.waveform_running      = False
-        self.daemon_running        = False
-        self.blueprint_scanning    = False
-        self.grid_pulse_running    = False
-        self.premium_running       = False
+        self.particle_running      = True
+        self.waveform_running      = True
+        self.daemon_running        = True
+        self.blueprint_scanning    = True
+        self.grid_pulse_running    = True
+        self.premium_running       = True
 
         # Animation phases
         self.particle_phase        = 0
