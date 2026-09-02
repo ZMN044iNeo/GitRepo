@@ -58,6 +58,9 @@ class JarvisHUD(tk.Tk):
         self.geometry("1280x720")
         self.configure(bg="#020b12")
         self.attributes("-alpha", 0.96)
+        self.fullscreen_mode = False
+        self.bind("<F11>", lambda event=None: self.toggle_fullscreen())
+        self.bind("<Escape>", lambda event=None: self.exit_fullscreen())
         try:
             self.attributes("-transparentcolor", "#020b12")
         except Exception:
@@ -170,6 +173,26 @@ class JarvisHUD(tk.Tk):
         )
         self.lbl_status.pack(pady=10)
 
+        self.corner_menu = tk.Menubutton(
+            self,
+            text="▣ FUNCTIONS",
+            relief="raised",
+            bg="#0a1620",
+            fg="#7ff9ff",
+            activebackground="#142a35",
+            activeforeground="#ffffff",
+            borderwidth=1,
+            highlightthickness=1,
+            padx=12,
+            pady=6,
+            font=("Consolas", 10, "bold"),
+        )
+        self.corner_menu.place(relx=1.0, rely=0.0, anchor="ne", x=-18, y=16)
+
+        self.corner_menu.menu = tk.Menu(self.corner_menu, tearoff=0, bg="#0b1218", fg="#b9f7ff", bd=1)
+        self.corner_menu["menu"] = self.corner_menu.menu
+        self._build_corner_menu()
+
         # ---- canvases ----
         self.main_canvas = tk.Canvas(
             self, width=1280, height=300, bg="#020b12", highlightthickness=0
@@ -231,6 +254,47 @@ class JarvisHUD(tk.Tk):
         self.cmd_entry.pack(fill="x", padx=10, pady=5)
         self.cmd_entry.bind("<Return>", lambda _e: self._on_cmd_enter())
         self.cmd_entry.focus_set()
+
+    def _build_corner_menu(self):
+        menu = self.corner_menu.menu
+        menu.add_command(label="Matrix: Default", command=lambda: self.process_command("jarvis matrix default", original="jarvis matrix default"))
+        menu.add_command(label="Matrix: Quantum", command=lambda: self.process_command("jarvis matrix quantum", original="jarvis matrix quantum"))
+        menu.add_command(label="Matrix: Stealth", command=lambda: self.process_command("jarvis matrix stealth", original="jarvis matrix stealth"))
+        menu.add_separator()
+        menu.add_command(label="Voice: On", command=lambda: self.process_command("jarvis voice on", original="jarvis voice on"))
+        menu.add_command(label="Voice: Off", command=lambda: self.process_command("jarvis voice off", original="jarvis voice off"))
+        menu.add_command(label="Voice Test", command=lambda: self.process_command("jarvis voice test", original="jarvis voice test"))
+        menu.add_separator()
+        menu.add_command(label="Blueprint Scan", command=lambda: self.process_command("jarvis scan blueprint", original="jarvis scan blueprint"))
+        menu.add_command(label="Daemon Pulse", command=lambda: self.process_command("jarvis pulse daemon", original="jarvis pulse daemon"))
+        menu.add_command(label="Cinematic Replay", command=lambda: self.process_command("jarvis cinematic replay", original="jarvis cinematic replay"))
+        menu.add_separator()
+        menu.add_command(label="Self Debug", command=lambda: self.process_command("jarvis self debug", original="jarvis self debug"))
+        menu.add_command(label="Status", command=lambda: self.process_command("jarvis status", original="jarvis status"))
+        menu.add_separator()
+        menu.add_command(label="Toggle Fullscreen", command=self.toggle_fullscreen)
+        menu.add_command(label="Open Control Surface", command=lambda: self.control_panel.show_in_foreground())
+
+    def toggle_fullscreen(self):
+        try:
+            self.fullscreen_mode = not self.fullscreen_mode
+            if self.fullscreen_mode:
+                self.attributes("-fullscreen", True)
+                self.log_chat("system", "Fullscreen mode enabled.")
+            else:
+                self.attributes("-fullscreen", False)
+                self.geometry("1280x720")
+                self.log_chat("system", "Fullscreen mode disabled.")
+        except Exception as exc:
+            self.log_chat("error", f"Fullscreen toggle failed: {exc}")
+            try:
+                self.state("zoomed")
+            except Exception:
+                self.geometry("1280x720")
+
+    def exit_fullscreen(self):
+        if self.fullscreen_mode:
+            self.toggle_fullscreen()
 
     def _init_router(self):
         if not ROUTER_AVAILABLE:

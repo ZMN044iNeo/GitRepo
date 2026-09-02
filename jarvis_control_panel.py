@@ -17,9 +17,10 @@ class JarvisControlPanel(tk.Toplevel):
         super().__init__(hud)
         self.hud = hud
         self.title("JARVIS Control Surface")
-        self.geometry("500x650")
-        self.minsize(420, 560)
+        self.geometry("420x560")
+        self.minsize(360, 500)
         self.configure(bg=self.BACKGROUND)
+        self.attributes("-topmost", True)
         self.protocol("WM_DELETE_WINDOW", self.withdraw)
 
         self.status_var = tk.StringVar()
