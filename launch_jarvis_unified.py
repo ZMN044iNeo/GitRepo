@@ -46,11 +46,6 @@ def start_hud() -> None:
         return
 
     launcher = sys.executable
-    if os.name == "nt":
-        pythonw = Path(sys.executable).with_name("pythonw.exe")
-        if pythonw.exists():
-            launcher = str(pythonw)
-
     log(f"Launching GUI process: {launcher}", "INIT")
     subprocess.Popen(
         [launcher, str(hud_script)],
