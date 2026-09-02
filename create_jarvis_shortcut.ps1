@@ -28,27 +28,32 @@ if (-not $desktop) {
 
 $shortcutPath = Join-Path $desktop "Jarvis.lnk"
 $legacyShortcutPath = Join-Path $desktop "JARVIS HUD V4.0.lnk"
-$hudPath = Join-Path $PSScriptRoot "jarvis_hud.py"
-$pythonPath = "C:\Users\pharo\AppData\Local\Programs\Python\Python312\python.exe"
-$pythonWindowlessPath = "C:\Users\pharo\AppData\Local\Programs\Python\Python312\pythonw.exe"
+$launcherPath = Join-Path $PSScriptRoot "launch_jarvis_unified.cmd"
 
-if (-not (Test-Path -LiteralPath $hudPath)) {
-    throw "Jarvis HUD was not found: $hudPath"
+if (-not (Test-Path -LiteralPath $launcherPath)) {
+    throw "Jarvis launcher was not found: $launcherPath"
 }
 
-if (-not (Test-Path -LiteralPath $pythonPath)) {
+$pythonPath = $null
+foreach ($candidate in @(
+    "C:\Users\pharo\AppData\Local\Programs\Python\Python312\python.exe",
+    "C:\Users\pharo\AppData\Local\Programs\Python\Python311\python.exe",
+    "C:\Users\pharo\AppData\Local\Programs\Python\Python310\python.exe"
+)) {
+    if (Test-Path -LiteralPath $candidate) {
+        $pythonPath = $candidate
+        break
+    }
+}
+
+if (-not $pythonPath) {
     $pythonPath = (Get-Command python -ErrorAction Stop).Source
-    $pythonWindowlessPath = Join-Path (Split-Path -Parent $pythonPath) "pythonw.exe"
-}
-
-if (-not (Test-Path -LiteralPath $pythonWindowlessPath)) {
-    $pythonWindowlessPath = $pythonPath
 }
 
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = $pythonWindowlessPath
-$shortcut.Arguments = "`"$hudPath`""
+$shortcut.TargetPath = "cmd.exe"
+$shortcut.Arguments = "/c `"`"$launcherPath`"`""
 $shortcut.WorkingDirectory = $PSScriptRoot
 $shortcut.WindowStyle = 1
 $shortcut.IconLocation = "$pythonPath,0"
