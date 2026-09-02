@@ -174,27 +174,27 @@ class JarvisHUD(tk.Tk):
         self.main_canvas.configure(highlightthickness=0)
 
         self.blueprint_canvas = tk.Canvas(
-            self.main_canvas, width=800, height=200, bg="", highlightthickness=0
+            self.main_canvas, width=800, height=200, bg="#000000", highlightthickness=0
         )
         self.blueprint_canvas.place(x=240, y=40)
 
         self.core_canvas = tk.Canvas(
-            self.main_canvas, width=320, height=200, bg="", highlightthickness=0
+            self.main_canvas, width=320, height=200, bg="#000000", highlightthickness=0
         )
         self.core_canvas.place(x=480, y=40)
 
         self.particle_canvas = tk.Canvas(
-            self.main_canvas, width=240, height=200, bg="", highlightthickness=0
+            self.main_canvas, width=240, height=200, bg="#000000", highlightthickness=0
         )
         self.particle_canvas.place(x=10, y=40)
 
         self.waveform_canvas = tk.Canvas(
-            self.main_canvas, width=240, height=80, bg="", highlightthickness=0
+            self.main_canvas, width=240, height=80, bg="#000000", highlightthickness=0
         )
         self.waveform_canvas.place(x=10, y=250)
 
         self.sync_beam_canvas = tk.Canvas(
-            self.main_canvas, width=800, height=40, bg="", highlightthickness=0
+            self.main_canvas, width=800, height=40, bg="#000000", highlightthickness=0
         )
         self.sync_beam_canvas.place(x=240, y=10)
 
