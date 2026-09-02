@@ -4,6 +4,9 @@ import threading
 import math
 import re
 import importlib
+import base64
+import subprocess
+from pathlib import Path
 
 import sounddevice as sd
 import numpy as np
@@ -11,6 +14,7 @@ import whisper
 
 from jarvis_sync_client_tk import JarvisSyncClientTK
 from jarvis_control_panel import JarvisControlPanel
+from jarvis_coding_assistant import JarvisCodingAssistant
 
 # Try to load router; fallback to local-only mode if jarvis2 not available
 try:
@@ -61,6 +65,16 @@ class JarvisHUD(tk.Tk):
         # Voice state
         self.voice_running = False
         self.voice_model   = None
+        self.voice_loading = False
+        self.voice_requested = False
+        self.voice_output_enabled = True
+        self.audio_level = 0.0
+        self.coding_assistant = JarvisCodingAssistant(Path(__file__).parent)
+
+        # Cinematic state
+        self.core_running = False
+        self.core_phase = 0
+        self.daemon_stop_job = None
 
         # ============================
         # ROUTER (modular command system)
@@ -84,6 +98,16 @@ class JarvisHUD(tk.Tk):
         self.after(100, self.cinematic_boot)
         self.after(500, self._sync_ready)
         self.after(100, self._poll_queue)
+        self.after(200, self._show_in_foreground)
+        self.after(400, self.control_panel.show_in_foreground)
+
+    def _show_in_foreground(self):
+        """Ensure a windowless shortcut launch is visible to the user."""
+        self.deiconify()
+        self.lift()
+        self.attributes("-topmost", True)
+        self.after(150, lambda: self.attributes("-topmost", False))
+        self.focus_force()
 
     # ============================================================
     # UI CONSTRUCTION
@@ -117,6 +141,11 @@ class JarvisHUD(tk.Tk):
             self.main_canvas, width=800, height=200, bg="#000000", highlightthickness=0
         )
         self.blueprint_canvas.place(x=240, y=40)
+
+        self.core_canvas = tk.Canvas(
+            self.main_canvas, width=320, height=200, bg="#000000", highlightthickness=0
+        )
+        self.core_canvas.place(x=480, y=40)
 
         self.particle_canvas = tk.Canvas(
             self.main_canvas, width=240, height=200, bg="#000000", highlightthickness=0
@@ -281,8 +310,16 @@ class JarvisHUD(tk.Tk):
             return "jarvis scan blueprint"
         if "daemon" in t or "pulse" in t:
             return "jarvis pulse daemon"
+        if "cinematic" in t or "replay boot" in t:
+            return "jarvis cinematic replay"
 
         # ---- voice ----
+        if "voice output" in t or "speech output" in t or "speaker" in t:
+            if "off" in t or "disable" in t:
+                return "jarvis voice output off"
+            if "test" in t:
+                return "jarvis voice test"
+            return "jarvis voice output on"
         if ("voice" in t or "microphone" in t or "listen" in t) and ("stop" in t or "off" in t or "disable" in t):
             return "jarvis voice off"
         if "voice" in t or "microphone" in t or "listen" in t:
@@ -299,6 +336,18 @@ class JarvisHUD(tk.Tk):
             return "jarvis dj prep"
         if "dj setup" in t or "show me the dj setup" in t or "dj blueprint" in t:
             return "jarvis blueprint dj"
+
+        # ---- local coding assistant ----
+        if t in ("code status", "coding status", "project status"):
+            return "code:status"
+        if t in ("check code", "validate code", "check python"):
+            return "code:validate"
+        if t in ("list code", "list python files"):
+            return "code:list"
+        if t.startswith("code find "):
+            return f"code:search:{text[10:].strip()}"
+        if t.startswith("code read "):
+            return f"code:read:{text[10:].strip()}"
 
         # ---- network / integrations (if router available) ----
         if t.startswith("search "):
@@ -342,6 +391,11 @@ class JarvisHUD(tk.Tk):
 
     def process_command(self, cmd: str, original: str = ""):
         cmd = cmd.strip().lower()
+
+        if cmd.startswith("code:"):
+            result = self.run_coding_command(cmd)
+            self.log_chat("code", result.replace("\n", " | ")[:600])
+            return
 
         # ---- Router commands (if available) ----
         if cmd.startswith("router:"):
@@ -410,12 +464,33 @@ class JarvisHUD(tk.Tk):
             self.log_chat("jarvis", "Daemon pulse triggered.")
             return
 
+        if cmd == "jarvis cinematic replay":
+            self.cinematic_view()
+            self.log_chat("jarvis", "Cinematic sequence replayed.")
+            return
+
         if cmd == "jarvis voice on":
             self.start_voice_commands()
             return
 
         if cmd == "jarvis voice off":
             self.stop_voice_commands()
+            return
+
+        if cmd == "jarvis voice output on":
+            self.voice_output_enabled = True
+            self.speak("Voice output enabled.")
+            self.log_chat("jarvis", "Offline voice output enabled.")
+            return
+
+        if cmd == "jarvis voice output off":
+            self.voice_output_enabled = False
+            self.log_chat("jarvis", "Offline voice output disabled.")
+            return
+
+        if cmd == "jarvis voice test":
+            self.speak("All systems are operational. Awaiting your directive.")
+            self.log_chat("jarvis", "Voice output test sent.")
             return
 
         if cmd == "jarvis sync":
@@ -451,6 +526,25 @@ class JarvisHUD(tk.Tk):
         # Fallback — anything unmatched goes to local engine
         self._local_respond(original or cmd)
 
+    def run_coding_command(self, command: str) -> str:
+        """Run a read-only local coding action and return its result."""
+        action, _, value = command.partition(":")
+        if action != "code":
+            return "Unknown coding action."
+
+        action, _, value = value.partition(":")
+        if action == "status":
+            return self.coding_assistant.project_status()
+        if action == "validate":
+            return self.coding_assistant.validate_python()
+        if action == "list":
+            return self.coding_assistant.list_python_files()
+        if action == "search":
+            return self.coding_assistant.search(value)
+        if action == "read":
+            return self.coding_assistant.read_file(value)
+        return f"Unknown coding action: {action}"
+
     # ============================================================
     # LOCAL VOICE ENGINE  (Whisper + sounddevice)
     # ============================================================
@@ -458,23 +552,73 @@ class JarvisHUD(tk.Tk):
         if self.voice_running:
             self.log_chat("jarvis", "Voice already online.")
             return
+        self.voice_requested = True
+        if self.voice_model is None:
+            if not self.voice_loading:
+                self.voice_loading = True
+                self.log_chat("system", "Loading Whisper model (tiny)...")
+                threading.Thread(target=self._load_voice_model, daemon=True).start()
+            return
+
+        self._begin_voice_capture()
+
+    def _load_voice_model(self):
         try:
-            if self.voice_model is None:
-                self.log_chat("system", "Loading Whisper model (tiny)…")
-                self.voice_model = whisper.load_model("tiny")
+            model = whisper.load_model("tiny")
+            self.after(0, lambda: self._on_voice_model_ready(model))
         except Exception as exc:
-            self.log_chat("error", f"Whisper load failed: {exc}")
+            self.after(0, lambda: self._on_voice_model_error(exc))
+
+    def _on_voice_model_ready(self, model):
+        self.voice_model = model
+        self.voice_loading = False
+        if self.voice_requested:
+            self._begin_voice_capture()
+
+    def _on_voice_model_error(self, exc):
+        self.voice_loading = False
+        self.voice_requested = False
+        self.log_chat("error", f"Whisper load failed: {exc}")
+
+    def _begin_voice_capture(self):
+        if self.voice_running or not self.voice_requested or self.voice_model is None:
             return
 
         self.voice_running = True
         self.start_voice_waveform()
         threading.Thread(target=self._voice_loop, daemon=True).start()
         self.log_chat("jarvis", "Voice command system online.")
+        self.speak("Voice command system online.")
 
     def stop_voice_commands(self):
+        self.voice_requested = False
         self.voice_running = False
+        self.audio_level = 0.0
         self.stop_voice_waveform()
         self.log_chat("jarvis", "Voice command system offline.")
+
+    def speak(self, text: str):
+        """Speak through Windows SAPI without requiring a web or Python TTS dependency."""
+        if not self.voice_output_enabled or not text:
+            return
+        threading.Thread(target=self._speak_worker, args=(text,), daemon=True).start()
+
+    def _speak_worker(self, text: str):
+        script = (
+            "Add-Type -AssemblyName System.Speech; "
+            "$speaker = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
+            "$speaker.Rate = 1; $speaker.Volume = 90; "
+            f"$speaker.Speak({text!r})"
+        )
+        encoded = base64.b64encode(script.encode("utf-16le")).decode("ascii")
+        try:
+            subprocess.run(
+                ["powershell.exe", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-EncodedCommand", encoded],
+                check=False,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        except OSError as exc:
+            self.msg_queue.put(("error", f"Voice output error: {exc}"))
 
     def _voice_loop(self):
         """Continuous voice capture with wake-word detection and intent classification.
@@ -504,6 +648,7 @@ class JarvisHUD(tk.Tk):
 
                 # Skip silent frames — avoids wasting Whisper on noise
                 rms = float(np.sqrt(np.mean(audio_np ** 2)))
+                self.after(0, lambda level=min(rms * 12, 1.0): self.set_audio_level(level))
                 if rms < VOICE_SILENCE_THRESHOLD:
                     consecutive_silences += 1
                     if consecutive_silences > 5:  # Reset after 5 silent windows
@@ -541,7 +686,11 @@ class JarvisHUD(tk.Tk):
                         wake_word_detected = False  # Reset for next wake-word
 
             except Exception as exc:
+                self.after(0, lambda: self.set_audio_level(0.0))
                 self.msg_queue.put(("error", f"Voice error: {exc}"))
+
+    def set_audio_level(self, level: float):
+        self.audio_level = max(0.0, min(level, 1.0))
 
     # ============================================================
     # STATUS / MATRIX
@@ -646,6 +795,7 @@ class JarvisHUD(tk.Tk):
         def fade_flash(step=0):
             if step > 20:
                 self.sync_beam_canvas.delete("sync_flash")
+                self.start_holographic_core()
                 return
             alpha = max(0, 255 - step * 12)
             self.sync_beam_canvas.itemconfig(
@@ -654,6 +804,48 @@ class JarvisHUD(tk.Tk):
             self.after(40, lambda: fade_flash(step + 1))
 
         fade_flash()
+
+    # ============================================================
+    # HOLOGRAPHIC CORE
+    # ============================================================
+    def start_holographic_core(self):
+        self.core_running = True
+        self.core_phase = 0
+        self.animate_holographic_core()
+
+    def animate_holographic_core(self):
+        if not self.core_running:
+            return
+
+        self.core_canvas.delete("all")
+        cx, cy = 160, 100
+        color = {
+            "QUANTUM": "#cc55ff",
+            "STEALTH": "#809199",
+            "OVERCLOCK": "#ff4d4d",
+        }.get(self.matrix_mode, "#00e5ff")
+        phase = self.core_phase / 12.0
+        pulse = 10 + int(4 * math.sin(phase * 1.5))
+
+        for radius, start, extent in ((74, 20, 135), (58, 190, 115), (42, 70, 150)):
+            offset = (self.core_phase * (1 if radius != 58 else -1)) % 360
+            self.core_canvas.create_arc(
+                cx - radius, cy - radius, cx + radius, cy + radius,
+                start=start + offset, extent=extent, style="arc", outline=color, width=2,
+            )
+
+        for index in range(8):
+            angle = phase + index * math.pi / 4
+            radius = 66
+            x = cx + radius * math.cos(angle)
+            y = cy + radius * math.sin(angle)
+            self.core_canvas.create_oval(x - 3, y - 3, x + 3, y + 3, fill=color, outline="")
+
+        self.core_canvas.create_oval(cx - pulse, cy - pulse, cx + pulse, cy + pulse, outline=color, width=3)
+        self.core_canvas.create_oval(cx - 4, cy - 4, cx + 4, cy + 4, fill="#ffffff", outline="")
+        self.core_canvas.create_text(cx, 178, text="ARC CORE // ACTIVE", fill=color, font=("Consolas", 10, "bold"))
+        self.core_phase += 1
+        self.after(40, self.animate_holographic_core)
 
     # ============================================================
     # PARTICLE ENGINE
@@ -725,7 +917,8 @@ class JarvisHUD(tk.Tk):
         w, h = 240, 80
         for x in range(0, w, 4):
             phase = (self.waveform_phase / 5.0) + (x / 20.0)
-            y = h / 2 + 20 * math.sin(phase)
+            amplitude = 8 + (32 * self.audio_level)
+            y = h / 2 + amplitude * math.sin(phase)
             self.waveform_canvas.create_line(x, h / 2, x, y, fill="#00FFAA")
         self.waveform_phase += 1
         self.after(40, self.animate_waveform)
@@ -736,10 +929,14 @@ class JarvisHUD(tk.Tk):
     def start_daemon_pulse(self):
         self.daemon_running = True
         self.daemon_phase   = 0
+        if self.daemon_stop_job:
+            self.after_cancel(self.daemon_stop_job)
+        self.daemon_stop_job = self.after(4000, self.stop_daemon_pulse)
         self.animate_daemon_pulse()
 
     def stop_daemon_pulse(self):
         self.daemon_running = False
+        self.daemon_stop_job = None
         self.main_canvas.delete("daemon_pulse")
 
     def animate_daemon_pulse(self):
