@@ -99,6 +99,7 @@ class JarvisHUD(tk.Tk):
         self.core_phase = 0
         self.daemon_stop_job = None
         self.upgrade_running = False
+        self.cinematic_active = False
 
         # ============================
         # ROUTER (modular command system)
@@ -1009,8 +1010,12 @@ class JarvisHUD(tk.Tk):
         self.after(1500, lambda: self.update_status("ONLINE"))
 
     def cinematic_view(self):
-        # Do not create a solid black block that covers the reactor.
+        # Clean slate: clear all cinematic tags to prepare for fresh animation
+        self.cinematic_active = True
         self.main_canvas.delete("cinematic_overlay")
+        self.main_canvas.delete("cinematic_arc")
+        self.main_canvas.delete("cinematic_grid")
+        self.sync_beam_canvas.delete("all")
         self.cinematic_arc_reactor()
 
     # ============================================================
@@ -1018,62 +1023,65 @@ class JarvisHUD(tk.Tk):
     # ============================================================
     def cinematic_arc_reactor(self):
         # centered on main_canvas
+        self.cinematic_active = True
         cx, cy, base_r = 470, 150, 30
 
         def pulse(step=0):
-            self.main_canvas.delete("arc_reactor")
+            if not self.cinematic_active:
+                return
+            self.main_canvas.delete("cinematic_arc")
             r = base_r + step
             
             # Expanding rings
             self.main_canvas.create_oval(
                 cx - r, cy - r, cx + r, cy + r,
-                outline="#00FFFF", width=3, tags="arc_reactor",
+                outline="#00FFFF", width=3, tags="cinematic_arc",
             )
             
             # Add inner core glow
             if r > 20:
                 self.main_canvas.create_oval(
                     cx - (r * 0.4), cy - (r * 0.4), cx + (r * 0.4), cy + (r * 0.4),
-                    outline="#00FFFF", width=1, tags="arc_reactor",
+                    outline="#00FFFF", width=1, tags="cinematic_arc",
                 )
             
             if step < 100:
                 self.after(20, lambda: pulse(step + 2))
             else:
                 # Final frame: expand to full size with border and labels
-                self.main_canvas.delete("arc_reactor")
+                self.main_canvas.delete("cinematic_arc")
                 
                 # Outer border rectangle
                 border_size = 180
                 self.main_canvas.create_rectangle(
                     cx - border_size, cy - border_size,
                     cx + border_size, cy + border_size,
-                    outline="#00FFFF", width=2, tags="arc_reactor"
+                    outline="#00FFFF", width=2, tags="cinematic_arc"
                 )
                 
                 # Final reactor rings
                 for ring_r in (40, 75, 110):
                     self.main_canvas.create_oval(
                         cx - ring_r, cy - ring_r, cx + ring_r, cy + ring_r,
-                        outline="#00FFFF", width=2, tags="arc_reactor",
+                        outline="#00FFFF", width=2, tags="cinematic_arc",
                     )
                 
                 # Center point
                 self.main_canvas.create_oval(
                     cx - 6, cy - 6, cx + 6, cy + 6,
-                    fill="#00FFFF", outline="", tags="arc_reactor"
+                    fill="#00FFFF", outline="", tags="cinematic_arc"
                 )
                 
                 # Labels
                 self.main_canvas.create_text(
                     cx, cy - 165,
                     text="JARVIS",
-                    fill="#00FFFF", font=("Consolas", 14, "bold"), tags="arc_reactor"
+                    fill="#00FFFF", font=("Consolas", 14, "bold"), tags="cinematic_arc"
                 )
                 self.main_canvas.create_text(
                     cx, cy + 165,
                     text="CORE",
-                    fill="#00FFFF", font=("Consolas", 14, "bold"), tags="arc_reactor"
+                    fill="#00FFFF", font=("Consolas", 14, "bold"), tags="cinematic_arc"
                 )
                 
                 self.cinematic_grid()
@@ -1084,6 +1092,8 @@ class JarvisHUD(tk.Tk):
     # BLUEPRINT GRID INTRO
     # ============================================================
     def cinematic_grid(self):
+        if not self.cinematic_active:
+            return
         self.main_canvas.delete("cinematic_grid")
         self.grid_pulse_phase = 0
         for x in range(0, 940, 40):
@@ -1091,15 +1101,18 @@ class JarvisHUD(tk.Tk):
         for y in range(0, 300, 40):
             self.main_canvas.create_line(0, y, 940, y, fill="#0b1520", width=1, tags="cinematic_grid")
 
+        self.sync_beam_canvas.delete("all")
         self.sync_beam_canvas.create_rectangle(
             0, 0, 527, 40, fill="#00FFFF", outline="", tags="sync_flash"
         )
 
         def fade_flash(step=0):
+            if not self.cinematic_active:
+                return
             if step > 20:
-                self.sync_beam_canvas.delete("sync_flash")
+                self.sync_beam_canvas.delete("all")
+                self.cinematic_active = False
                 self.start_holographic_core()
-                self.animate_sonar_grid()
                 return
             alpha = max(0, 255 - step * 12)
             self.sync_beam_canvas.itemconfig(
@@ -1110,24 +1123,9 @@ class JarvisHUD(tk.Tk):
         fade_flash()
 
     def animate_sonar_grid(self):
-        if not self.particle_running:
-            return
-        self.grid_pulse_phase = (self.grid_pulse_phase + 1) % 100
-        for item in self.main_canvas.find_withtag("cinematic_grid"):
-            self.main_canvas.itemconfig(item, fill="#12273a")
-
-        pulse = 0.5 + (math.sin(self.grid_pulse_phase / 8.0) + 1) / 2
-        for x in range(0, 940, 40):
-            for y in range(0, 300, 40):
-                target = self.main_canvas.find_overlapping(x - 5, y - 5, x + 5, y + 5)
-                if not target:
-                    continue
-                for item in target:
-                    if self.main_canvas.gettags(item) and "cinematic_grid" in self.main_canvas.gettags(item):
-                        alpha = int(20 + 30 * pulse)
-                        self.main_canvas.itemconfig(item, fill=f"#{alpha:02x}{alpha + 15:02x}{alpha + 30:02x}")
-
-        self.after(80, self.animate_sonar_grid)
+        # This is now handled by animate_particles grid overlay
+        # Removed to prevent animation conflict
+        pass
 
     # ============================================================
     # HOLOGRAPHIC CORE
@@ -1202,10 +1200,10 @@ class JarvisHUD(tk.Tk):
         if not self.particle_running:
             return
 
+        # Only delete runtime animation elements, preserve cinematic elements
         self.main_canvas.delete("grid_overlay")
-        self.main_canvas.delete("arc_reactor")
+        self.main_canvas.delete("runtime_arc_reactor")
         self.main_canvas.delete("matrix_overlay")
-        self.particle_canvas.delete("all")
 
         # Background grid: dim and transparent when idle, brighter when active.
         cx, cy = 470, 150
@@ -1233,7 +1231,7 @@ class JarvisHUD(tk.Tk):
             r = ring + 8 * math.sin(self.premium_phase / 15.0)
             self.main_canvas.create_oval(
                 cx - r, cy - r, cx + r, cy + r,
-                outline=color, width=2, tags="arc_reactor"
+                outline=color, width=2, tags="runtime_arc_reactor"
             )
 
         # Dense particle burst - more particles for premium look
@@ -1252,7 +1250,7 @@ class JarvisHUD(tk.Tk):
         border_r = 130 + 5 * pulse
         self.main_canvas.create_rectangle(
             cx - border_r, cy - border_r, cx + border_r, cy + border_r,
-            outline=color, width=2, tags="arc_reactor"
+            outline=color, width=2, tags="runtime_arc_reactor"
         )
 
         self.main_canvas.create_oval(
