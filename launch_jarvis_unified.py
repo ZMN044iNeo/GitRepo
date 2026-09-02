@@ -20,8 +20,9 @@ def start_hud() -> None:
         import whisper  # noqa: F401
         import sounddevice  # noqa: F401
         import numpy  # noqa: F401
-    except ImportError as exc:
-        log(f"Optional voice stack missing: {exc}. Continuing in local-safe HUD mode.", "WARN")
+    except ImportError:
+        # Optional voice stack is not required for the local HUD to boot.
+        pass
 
     hud_script = REPO_ROOT / "jarvis_hud.py"
     if not hud_script.exists():
