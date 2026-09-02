@@ -222,7 +222,7 @@ class JarvisHUD(tk.Tk):
         self.sync_beam_canvas.place(x=240, y=10)
 
         self.labels_canvas = tk.Canvas(
-            self.main_canvas, width=1280, height=300, bg="", highlightthickness=0
+            self.main_canvas, width=1280, height=300, bg="#000000", highlightthickness=0
         )
         self.labels_canvas.place(x=0, y=0)  # Placed last = on top
 
