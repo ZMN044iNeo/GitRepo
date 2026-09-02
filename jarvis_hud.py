@@ -220,7 +220,7 @@ class JarvisHUD(tk.Tk):
             outline="#b7f7ff", width=3, tags="voice_reactive"
         )
         # Unified voice-reactive animation suite
-        self.animate_matrix_adaptive()
+        self.animate_matrix_unified()
         self.animate_particles()
         self.animate_waveform()
         self.animate_blueprint_scan()
@@ -1323,15 +1323,14 @@ class JarvisHUD(tk.Tk):
         pass
 
     # ============================================================
-    # FULL ADAPTIVE MATRIX ENGINE (Unified Replacement)
+    # UNIFIED ADAPTIVE MATRIX ENGINE (Enhanced Full Replacement)
     # ============================================================
-    def animate_matrix_adaptive(self):
+    def animate_matrix_unified(self):
         """Unified adaptive matrix animation driven by waveform amplitude."""
-        # Audio level drives EVERYTHING
         level = min(max(self.audio_level, 0.0), 1.0)
 
         # Clear previous frame
-        self.main_canvas.delete("matrix_adaptive")
+        self.main_canvas.delete("matrix_unified")
 
         cx, cy = 640, 150
 
@@ -1339,30 +1338,30 @@ class JarvisHUD(tk.Tk):
         # 1. Concentric Rings (reactive pulse)
         # ============================================================
         base_radius = 40 + int(level * 80)
-        for i in range(8):
-            r = base_radius + (i * 22)
+        for i in range(10):
+            r = base_radius + (i * 20)
             color = f"#{int(120 + level*135):02x}00ff"
             self.main_canvas.create_oval(
                 cx - r, cy - r, cx + r, cy + r,
                 outline=color,
                 width=2,
-                tags="matrix_adaptive"
+                tags="matrix_unified"
             )
 
         # ============================================================
         # 2. Particle Field (orbiting dots)
         # ============================================================
-        particle_count = 80
+        particle_count = 100
         for i in range(particle_count):
-            angle = (self.waveform_phase / 10.0) + (i * 0.08)
-            radius = base_radius + 140 + int(level * 50)
+            angle = (self.waveform_phase / 12.0) + (i * 0.07)
+            radius = base_radius + 150 + int(level * 60)
             px = cx + radius * math.cos(angle)
             py = cy + radius * math.sin(angle)
             self.main_canvas.create_oval(
                 px - 3, py - 3, px + 3, py + 3,
                 fill="#aa00ff",
                 outline="",
-                tags="matrix_adaptive"
+                tags="matrix_unified"
             )
 
         # ============================================================
@@ -1372,7 +1371,7 @@ class JarvisHUD(tk.Tk):
         bar_y = 40
         bar_width = 12
         bar_spacing = 8
-        bar_count = 24
+        bar_count = 28
 
         for i in range(bar_count):
             height = 20 + int(level * 160) + int(math.sin(self.waveform_phase/8 + i)*50)
@@ -1386,7 +1385,7 @@ class JarvisHUD(tk.Tk):
                 x1, y1, x2, y2,
                 fill=color,
                 outline="",
-                tags="matrix_adaptive"
+                tags="matrix_unified"
             )
 
         # ============================================================
@@ -1397,11 +1396,11 @@ class JarvisHUD(tk.Tk):
             cx - pulse, cy - pulse, cx + pulse, cy + pulse,
             outline="#ff00ff",
             width=3,
-            tags="matrix_adaptive"
+            tags="matrix_unified"
         )
 
         # ============================================================
-        # 5. Matrix Grid Distortion (optional)
+        # 5. Matrix Grid Distortion (subtle)
         # ============================================================
         for x in range(0, 1280, 80):
             offset = int(math.sin(self.waveform_phase/15 + x/100) * 10 * level)
@@ -1410,7 +1409,7 @@ class JarvisHUD(tk.Tk):
                 x, 300 - offset,
                 fill="#220033",
                 width=1,
-                tags="matrix_adaptive"
+                tags="matrix_unified"
             )
 
     # ============================================================
