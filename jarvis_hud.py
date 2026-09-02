@@ -95,7 +95,7 @@ class JarvisHUD(tk.Tk):
 
         # Animation phases
         self.particle_phase        = 0
-        self.waveform_phase        = 0
+        self.waveform_phase        = 0  # Master phase for holographic matrix
         self.daemon_phase          = 0
         self.blueprint_phase       = 0
         self.grid_pulse_phase      = 0
@@ -107,7 +107,7 @@ class JarvisHUD(tk.Tk):
         self.voice_loading = False
         self.voice_requested = False
         self.voice_output_enabled = True
-        self.audio_level = 0.0
+        self.audio_level = 0.5  # Idle hologram pulse even without voice
         self.coding_assistant = JarvisCodingAssistant(Path(__file__).parent)
 
         # Cinematic state
@@ -170,6 +170,10 @@ class JarvisHUD(tk.Tk):
     def animation_loop(self):
         """Unified animation loop that updates ONLY what is active."""
 
+        # HOLOGRAPHIC MATRIX (always running)
+        self.waveform_phase += 1
+        self.animate_matrix_holographic()
+
         # PARTICLES
         if self.particle_running:
             self.particle_phase += 1
@@ -177,7 +181,6 @@ class JarvisHUD(tk.Tk):
 
         # WAVEFORM
         if self.waveform_running:
-            self.waveform_phase += 1
             self.animate_waveform()
 
         # DAEMON TERMINAL PULSE
@@ -1180,6 +1183,172 @@ class JarvisHUD(tk.Tk):
             return
         self.core_phase += 1
         self.after(40, self.animate_holographic_core)
+
+    # ============================================================
+    # MATRIX COLOR MODES (DEFAULT / QUANTUM / STEALTH / OVERCLOCK)
+    # ============================================================
+    def _matrix_colors(self):
+        """Return color palette based on current matrix mode."""
+        mode = str(self.matrix_mode).lower()
+
+        if mode == "quantum":
+            return {
+                "ring":    "#00ccff",
+                "particle":"#33ddff",
+                "bar":     "#00aaff",
+                "core":    "#33ffff",
+                "inner":   "#00bbff",
+                "grid":    "#003344",
+                "dust":    "#44ddff",
+            }
+
+        if mode == "stealth":
+            return {
+                "ring":    "#331144",
+                "particle":"#552266",
+                "bar":     "#442255",
+                "core":    "#663377",
+                "inner":   "#442255",
+                "grid":    "#220022",
+                "dust":    "#553366",
+            }
+
+        if mode == "overclock":
+            return {
+                "ring":    "#ff0099",
+                "particle":"#ff33cc",
+                "bar":     "#ff66cc",
+                "core":    "#ffffff",
+                "inner":   "#ff33aa",
+                "grid":    "#440022",
+                "dust":    "#ff55cc",
+            }
+
+        # DEFAULT MODE (purple / blue neon)
+        return {
+            "ring":    "#bb00ff",
+            "particle":"#cc33ff",
+            "bar":     "#8833ff",
+            "core":    "#ff33ff",
+            "inner":   "#aa00ff",
+            "grid":    "#330044",
+            "dust":    "#9933ff",
+        }
+
+    # ============================================================
+    # HOLOGRAPHIC MATRIX ENGINE — FULL UNIFIED ANIMATION
+    # ============================================================
+    def animate_matrix_holographic(self):
+        """High-density holographic matrix animation with color modes."""
+        level = min(max(self.audio_level, 0.0), 1.0)
+        colors = self._matrix_colors()
+
+        # Clear previous frame
+        self.main_canvas.delete("holo")
+
+        cx, cy = 640, 150
+
+        # ============================================================
+        # 1. Concentric Rings (reactive pulse)
+        # ============================================================
+        base_radius = 60 + int(level * 90)
+        for i in range(12):
+            r = base_radius + (i * 18)
+            self.main_canvas.create_oval(
+                cx - r, cy - r, cx + r, cy + r,
+                outline=colors["ring"],
+                width=3,
+                tags="holo"
+            )
+
+        # ============================================================
+        # 2. Particle Halo (orbiting particles)
+        # ============================================================
+        particle_count = 140
+        for i in range(particle_count):
+            angle = (self.waveform_phase / 14.0) + (i * 0.045)
+            radius = base_radius + 180 + int(level * 70)
+
+            px = cx + radius * math.cos(angle)
+            py = cy + radius * math.sin(angle)
+
+            self.main_canvas.create_oval(
+                px - 2, py - 2, px + 2, py + 2,
+                fill=colors["particle"],
+                outline="",
+                tags="holo"
+            )
+
+        # ============================================================
+        # 3. Vertical Light Bars (audio spectrum)
+        # ============================================================
+        bar_x = 240
+        bar_y = 40
+        bar_width = 10
+        bar_spacing = 6
+        bar_count = 32
+
+        for i in range(bar_count):
+            height = 30 + int(level * 180) + int(math.sin(self.waveform_phase/10 + i)*60)
+            x1 = bar_x + i * (bar_width + bar_spacing)
+            y1 = bar_y + (200 - height)
+            x2 = x1 + bar_width
+            y2 = bar_y + 200
+
+            self.main_canvas.create_rectangle(
+                x1, y1, x2, y2,
+                fill=colors["bar"],
+                outline="",
+                tags="holo"
+            )
+
+        # ============================================================
+        # 4. Energy Core (glowing pulse)
+        # ============================================================
+        pulse = 30 + int(level * 70)
+
+        # Outer core
+        self.main_canvas.create_oval(
+            cx - pulse, cy - pulse, cx + pulse, cy + pulse,
+            outline=colors["core"],
+            width=4,
+            tags="holo"
+        )
+
+        # Inner glow
+        self.main_canvas.create_oval(
+            cx - pulse//2, cy - pulse//2,
+            cx + pulse//2, cy + pulse//2,
+            outline=colors["inner"],
+            width=3,
+            tags="holo"
+        )
+
+        # ============================================================
+        # 5. Holographic Grid Distortion
+        # ============================================================
+        for x in range(0, 1280, 60):
+            offset = int(math.sin(self.waveform_phase/18 + x/120) * 12 * level)
+            self.main_canvas.create_line(
+                x, 0 + offset,
+                x, 300 - offset,
+                fill=colors["grid"],
+                width=1,
+                tags="holo"
+            )
+
+        # ============================================================
+        # 6. Floating Holographic Dust
+        # ============================================================
+        for i in range(40):
+            dx = (i * 32 + self.waveform_phase * 2) % 1280
+            dy = 40 + int(math.sin(self.waveform_phase/12 + i)*120)
+            self.main_canvas.create_oval(
+                dx - 2, dy - 2, dx + 2, dy + 2,
+                fill=colors["dust"],
+                outline="",
+                tags="holo"
+            )
 
     # ============================================================
     # PARTICLE ENGINE
