@@ -220,9 +220,9 @@ class JarvisHUD(tk.Tk):
         self.particle_canvas.place(x=490, y=52)
 
         self.waveform_canvas = tk.Canvas(
-            self.main_canvas, width=380, height=90, bg="#02070d", highlightthickness=0
+            self, width=380, height=90, bg="#02070d", highlightthickness=0
         )
-        self.waveform_canvas.place(x=540, y=238)
+        self.waveform_canvas.pack(fill="x", padx=12, pady=(0, 4))
 
         self.sync_beam_canvas = tk.Canvas(
             self.main_canvas, width=840, height=44, bg="#02070d", highlightthickness=0
@@ -239,7 +239,7 @@ class JarvisHUD(tk.Tk):
             state="disabled",
             insertbackground="#00FF00",
         )
-        self.chat_box.pack(fill="x", padx=10, pady=3)
+        self.chat_box.pack(fill="x", padx=10, pady=(0, 3))
 
         self.console_box = tk.Text(
             self,
@@ -249,13 +249,13 @@ class JarvisHUD(tk.Tk):
             height=4,
             state="disabled",
         )
-        self.console_box.pack(fill="x", padx=10, pady=3)
+        self.console_box.pack(fill="x", padx=10, pady=(0, 3))
 
         # ---- command entry ----
         self.cmd_entry = tk.Entry(
             self, fg="#00FFFF", bg="#000000", font=("Consolas", 12)
         )
-        self.cmd_entry.pack(fill="x", padx=10, pady=3)
+        self.cmd_entry.pack(fill="x", padx=10, pady=(0, 8))
         self.cmd_entry.bind("<Return>", lambda _e: self._on_cmd_enter())
         self.cmd_entry.focus_set()
 
@@ -1162,29 +1162,50 @@ class JarvisHUD(tk.Tk):
         if not self.particle_running:
             return
 
+        self.main_canvas.delete("grid_overlay")
+        self.main_canvas.delete("arc_reactor")
         self.main_canvas.delete("matrix_overlay")
         self.particle_canvas.delete("all")
 
-        # Keep the reactive matrix subtle and behind the engineering view.
+        # Background grid: dim and transparent when idle, brighter when active.
         cx, cy = 640, 150
         color = "#cc66ff" if self.matrix_mode == "QUANTUM" else "#00e5ff"
         pulse = 0.5 + (math.sin(self.particle_phase / 12.0) + 1) / 2
         self.premium_phase += 1
 
+        for x in range(0, 1280, 42):
+            self.main_canvas.create_line(
+                x, 0, x, 300,
+                fill="#0b1320" if pulse < 0.7 else "#16364d",
+                width=1,
+                tags="grid_overlay",
+                stipple="gray50" if pulse < 0.7 else ""
+            )
+        for y in range(0, 300, 42):
+            self.main_canvas.create_line(
+                0, y, 1280, y,
+                fill="#0b1320" if pulse < 0.7 else "#16364d",
+                width=1,
+                tags="grid_overlay",
+                stipple="gray50" if pulse < 0.7 else ""
+            )
+
+        # Arc reactor sits above the dim grid and below the particle overlay.
         for ring in (46, 78, 110, 144):
             r = ring + 10 * math.sin(self.premium_phase / 18.0)
             self.main_canvas.create_oval(
                 cx - r, cy - r, cx + r, cy + r,
-                outline=color, width=1, tags="matrix_overlay", stipple="gray50"
+                outline=color, width=2, tags="arc_reactor", stipple="gray50"
             )
 
-        for i in range(18):
+        # Particle burst sits on top as the active foreground layer.
+        for i in range(24):
             angle = (self.particle_phase / 18.0) + (i / 5.0)
             radius = 160 + 30 * math.sin(i / 2.0 + self.particle_phase / 30.0)
             x = cx + radius * math.cos(angle)
             y = cy + radius * math.sin(angle * 1.15)
             self.main_canvas.create_oval(
-                x - 1.5, y - 1.5, x + 1.5, y + 1.5,
+                x - 1.8, y - 1.8, x + 1.8, y + 1.8,
                 fill=color, outline="", tags="matrix_overlay"
             )
 
