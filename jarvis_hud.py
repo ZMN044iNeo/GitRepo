@@ -10,6 +10,7 @@ import numpy as np
 import whisper
 
 from jarvis_sync_client_tk import JarvisSyncClientTK
+from jarvis_control_panel import JarvisControlPanel
 
 # Try to load router; fallback to local-only mode if jarvis2 not available
 try:
@@ -75,6 +76,7 @@ class JarvisHUD(tk.Tk):
         # BUILD UI
         # ============================
         self._build_ui()
+        self.control_panel = JarvisControlPanel(self)
 
         # ============================
         # SCHEDULE STARTUP

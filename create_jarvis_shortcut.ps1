@@ -2,13 +2,7 @@
 .SYNOPSIS
     Creates or replaces the Jarvis desktop shortcut for this workspace.
 
-.PARAMETER Hologram
-    Launch the Streamlit hologram dashboard with the HUD.
 #>
-
-param(
-    [switch]$Hologram = $true
-)
 
 $desktopCandidates = @(
     [Environment]::GetFolderPath("Desktop"),
@@ -43,12 +37,11 @@ if (-not (Test-Path -LiteralPath $launcherPath)) {
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
 $shortcut.TargetPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-$hologramArgument = if ($Hologram) { " -Hologram" } else { "" }
-$shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$launcherPath`"$hologramArgument"
+$shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$launcherPath`""
 $shortcut.WorkingDirectory = $PSScriptRoot
 $shortcut.WindowStyle = 1
 $shortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,220"
-$shortcut.Description = "Launch JARVIS HUD V4.0 with live hologram telemetry"
+$shortcut.Description = "Launch JARVIS HUD V4.0 with the native control surface"
 $shortcut.Save()
 
 if ($legacyShortcutPath -ne $shortcutPath -and (Test-Path -LiteralPath $legacyShortcutPath)) {
