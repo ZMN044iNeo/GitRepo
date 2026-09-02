@@ -3,6 +3,7 @@ import queue
 import threading
 import math
 import re
+import os
 
 import sounddevice as sd
 import numpy as np
@@ -10,9 +11,20 @@ import whisper
 
 from jarvis_sync_client_tk import JarvisSyncClientTK
 
+# Try to load router; fallback to local-only mode if jarvis2 not available
+try:
+    from jarvis2.core.router import JarvisRouter
+    ROUTER_AVAILABLE = True
+except ImportError:
+    ROUTER_AVAILABLE = False
+    JarvisRouter = None
+
 
 # Silence gate: frames with RMS below this value are skipped
 VOICE_SILENCE_THRESHOLD = 0.01
+
+# Wake word configuration
+WAKE_WORD = "jarvis"
 
 
 class JarvisHUD(tk.Tk):
@@ -46,6 +58,37 @@ class JarvisHUD(tk.Tk):
         # Voice state
         self.voice_running = False
         self.voice_model   = None
+
+        # ============================
+        # ROUTER (modular command system)
+        # ============================
+        self.router = None
+        router_status = "Not initialized yet"
+        if ROUTER_AVAILABLE:
+            try:
+                self.router = JarvisRouter()
+                # Register all integrations
+                from jarvis2.integrations import (
+                    telegram_bot,
+                    elegoo_printer,
+                    browser_duckduckgo,
+                    vpn_control,
+                    steam_vr,
+                )
+                telegram_bot.register(self.router)
+                elegoo_printer.register(self.router)
+                browser_duckduckgo.register(self.router)
+                vpn_control.register(self.router)
+                steam_vr.register(self.router)
+                router_status = "Initialized with 5 integrations"
+            except Exception as e:
+                router_status = f"Init failed: {e} — local mode only"
+                self.router = None
+        else:
+            router_status = "jarvis2 module not found"
+        
+        # Store for later logging
+        self._router_init_status = router_status
 
         # ============================
         # SYNC CLIENT
@@ -185,8 +228,22 @@ class JarvisHUD(tk.Tk):
     # COMMAND SYSTEM
     # ============================================================
     def ai_interpret(self, text: str) -> str:
-        """Map natural language to a canonical command string."""
+        """Map natural language to a canonical command string.
+        
+        First checks for wake-word ("jarvis"), then applies intent classification.
+        Returns structured command string for process_command().
+        """
         t = text.lower().strip()
+
+        # Wake-word detection: extract remainder after "jarvis"
+        if WAKE_WORD in t:
+            cleaned = t.replace(WAKE_WORD, "").strip()
+            if cleaned:
+                # Recurse on cleaned text to classify intent
+                return self.ai_interpret(cleaned)
+            else:
+                # Just "jarvis" → acknowledge
+                return "ask:yes jarvis"
 
         # Pass through already-structured commands
         if t.startswith("jarvis "):
@@ -205,26 +262,41 @@ class JarvisHUD(tk.Tk):
         # ---- visual / animation ----
         if "scan" in t and ("blueprint" in t or "grid" in t):
             return "jarvis scan blueprint"
-        if "daemon" in t or ("pulse" in t and "daemon" not in t):
+        if "daemon" in t or "pulse" in t:
             return "jarvis pulse daemon"
 
         # ---- voice ----
-        if ("voice" in t or "microphone" in t) and ("stop" in t or "off" in t):
+        if ("voice" in t or "microphone" in t or "listen" in t) and ("stop" in t or "off" in t or "disable" in t):
             return "jarvis voice off"
         if "voice" in t or "microphone" in t or "listen" in t:
             return "jarvis voice on"
 
         # ---- ffmpeg / media  (from whisper_bridge classify_intent) ----
-        if "make this video smaller" in t or "compress" in t:
+        if "make this video smaller" in t or "compress" in t or "encode" in t:
             return "jarvis ffmpeg compress"
-        if "pull the audio" in t or "extract audio" in t:
+        if "pull the audio" in t or "extract audio" in t or "extract" in t:
             return "jarvis ffmpeg extract"
-        if "clean this up" in t or "fix the audio" in t:
+        if "clean this up" in t or "fix the audio" in t or "normalize" in t:
             return "jarvis ffmpeg clean"
-        if "prep this track" in t or "dj prep" in t:
+        if "prep this track" in t or "dj prep" in t or "prep track" in t:
             return "jarvis dj prep"
-        if "dj setup" in t or "show me the dj setup" in t:
+        if "dj setup" in t or "show me the dj setup" in t or "dj blueprint" in t:
             return "jarvis blueprint dj"
+
+        # ---- network / integrations (if router available) ----
+        if "telegram" in t or "send message" in t:
+            return "router:telegram"
+        if "vpn" in t:
+            if "on" in t or "enable" in t:
+                return "router:vpn on"
+            elif "off" in t or "disable" in t:
+                return "router:vpn off"
+        if "printer" in t or "print" in t or "3d print" in t:
+            return "router:printer"
+        if "steam" in t or "game" in t or "vr" in t:
+            return "router:steam"
+        if "search" in t or "browse" in t or "web" in t:
+            return "router:search"
 
         # ---- system ----
         if "sync" in t or "beam" in t:
@@ -252,6 +324,21 @@ class JarvisHUD(tk.Tk):
     def process_command(self, cmd: str, original: str = ""):
         cmd = cmd.strip().lower()
 
+        # ---- Router commands (if available) ----
+        if cmd.startswith("router:"):
+            if self.router:
+                try:
+                    router_cmd = cmd[7:].strip()
+                    result = self.router.handle_command(router_cmd)
+                    self.log_chat("jarvis", str(result))
+                    return
+                except Exception as e:
+                    self.log_chat("error", f"Router error: {e}")
+                    return
+            else:
+                self.log_chat("warning", "Router not available (jarvis2 module not found).")
+                return
+
         # Route unknown input to local response engine
         if cmd.startswith("ask:"):
             self._local_respond(cmd[4:].strip() or original)
@@ -259,20 +346,23 @@ class JarvisHUD(tk.Tk):
 
         if cmd == "jarvis status":
             voice_state = "active" if self.voice_running else "idle"
+            router_state = "ready" if self.router else "offline"
             self.log_chat(
                 "jarvis",
-                f"Status: {self.current_status} | Matrix: {self.matrix_mode} | Voice: {voice_state}",
+                f"Status: {self.current_status} | Matrix: {self.matrix_mode} | Voice: {voice_state} | Router: {router_state}",
             )
             return
 
         if cmd == "jarvis help":
             cmds = (
-                "matrix <quantum|stealth|overclock|default> · scan blueprint · "
-                "pulse daemon · voice on/off · sync · calm · status · clear · "
-                "ffmpeg compress/extract/clean · dj prep · blueprint dj · "
-                "or ask me anything"
+                "[ MATRIX ] quantum/stealth/overclock/default | scan blueprint | pulse daemon\n"
+                "[ VOICE ] voice on/off | listen\n"
+                "[ MEDIA ] compress | extract | clean | dj prep | blueprint dj\n"
+                "[ SYSTEM ] sync | calm | status | clear | help\n"
+                "[ NETWORK ] telegram | vpn on/off | printer | steam | search <query>\n"
+                "[ GENERAL ] ask me anything"
             )
-            self.log_chat("jarvis", f"Commands: {cmds}")
+            self.log_chat("jarvis", f"Commands:\n{cmds}")
             return
 
         if cmd == "jarvis clear":
@@ -368,8 +458,18 @@ class JarvisHUD(tk.Tk):
         self.log_chat("jarvis", "Voice command system offline.")
 
     def _voice_loop(self):
+        """Continuous voice capture with wake-word detection and intent classification.
+        
+        - Captures 4-second audio windows at 16kHz
+        - Skips silent frames (RMS < threshold)
+        - Checks for wake-word "jarvis"
+        - Transcribes with Whisper (tiny model)
+        - Routes commands through ai_interpret()
+        """
         sample_rate = 16_000
         duration    = 4  # seconds per capture window
+        wake_word_detected = False
+        consecutive_silences = 0
 
         while self.voice_running:
             try:
@@ -386,15 +486,40 @@ class JarvisHUD(tk.Tk):
                 # Skip silent frames — avoids wasting Whisper on noise
                 rms = float(np.sqrt(np.mean(audio_np ** 2)))
                 if rms < VOICE_SILENCE_THRESHOLD:
+                    consecutive_silences += 1
+                    if consecutive_silences > 5:  # Reset after 5 silent windows
+                        wake_word_detected = False
+                        consecutive_silences = 0
                     continue
+                else:
+                    consecutive_silences = 0
 
+                # Transcribe audio with Whisper
                 result = self.voice_model.transcribe(audio_np, fp16=False)
                 text   = result.get("text", "").strip()
 
                 if text:
+                    # Log transcription via sync hook
                     self.after(0, lambda t=text: self.on_voice_transcribed(t))
-                    cmd = self.ai_interpret(text)
-                    self.after(0, lambda c=cmd, t=text: self.process_command(c, original=t))
+                    
+                    # Check for wake-word
+                    text_lower = text.lower()
+                    if WAKE_WORD in text_lower:
+                        wake_word_detected = True
+                        # Extract remainder after wake-word
+                        cleaned = text_lower.replace(WAKE_WORD, "").strip()
+                        if cleaned:
+                            # Process the remainder as command
+                            cmd = self.ai_interpret(cleaned)
+                            self.after(0, lambda c=cmd, t=cleaned: self.process_command(c, original=t))
+                        else:
+                            # Just "jarvis" → wait for next utterance
+                            self.log_chat("jarvis", "Listening…")
+                    elif wake_word_detected:
+                        # In wake-word mode, process next utterance
+                        cmd = self.ai_interpret(text)
+                        self.after(0, lambda c=cmd, t=text: self.process_command(c, original=t))
+                        wake_word_detected = False  # Reset for next wake-word
 
             except Exception as exc:
                 self.msg_queue.put(("error", f"Voice error: {exc}"))
@@ -439,6 +564,7 @@ class JarvisHUD(tk.Tk):
     # ============================================================
     def cinematic_boot(self):
         self.log_chat("system", "JARVIS HUD V4.0 initializing…")
+        self.log_chat("system", f"Router: {self._router_init_status}")
         self.update_status("BOOTING")
         self.set_matrix_mode("DEFAULT")
         self.start_quantum_particles()
