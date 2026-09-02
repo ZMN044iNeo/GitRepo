@@ -208,7 +208,6 @@ class JarvisHUD(tk.Tk):
             self.main_canvas, width=860, height=238, bg="#02070d", highlightthickness=0
         )
         self.blueprint_canvas.place(x=300, y=42)
-        self.blueprint_canvas.lower()
 
         self.core_canvas = tk.Canvas(
             self.main_canvas, width=360, height=220, bg="#02070d", highlightthickness=0
