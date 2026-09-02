@@ -221,11 +221,6 @@ class JarvisHUD(tk.Tk):
         )
         self.sync_beam_canvas.place(x=240, y=10)
 
-        self.labels_canvas = tk.Canvas(
-            self.main_canvas, width=1280, height=300, bg="#000000", highlightthickness=0
-        )
-        self.labels_canvas.place(x=0, y=0)  # Placed last = on top
-
         self.waveform_canvas = tk.Canvas(
             self.main_canvas, width=240, height=80, bg="#000000", highlightthickness=0
         )
@@ -1108,15 +1103,14 @@ class JarvisHUD(tk.Tk):
                 self.start_blueprint_scan()
                 self.start_quantum_particles()
                 self.start_holographic_core()
-                # Redraw labels on labels_canvas (on top of everything)
+                # Draw labels on main_canvas (will appear above all child canvases)
                 cx, cy = 640, 150
-                self.labels_canvas.delete("labels")
-                self.labels_canvas.create_text(
+                self.main_canvas.create_text(
                     cx, cy - 165,
                     text="JARVIS",
                     fill="#00FFFF", font=("Consolas", 14, "bold"), tags="labels"
                 )
-                self.labels_canvas.create_text(
+                self.main_canvas.create_text(
                     cx, cy + 165,
                     text="CORE",
                     fill="#00FFFF", font=("Consolas", 14, "bold"), tags="labels"
