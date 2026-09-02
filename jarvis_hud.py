@@ -106,9 +106,6 @@ class JarvisHUD(tk.Tk):
         # ============================
         self.router, self._router_tools, self._router_init_status = self._init_router()
 
-        # Ensure the optional voice stack is available without crashing startup.
-        self.ensure_voice_dependencies()
-
         # ============================
         # SYNC CLIENT
         # ============================
@@ -118,6 +115,10 @@ class JarvisHUD(tk.Tk):
         # BUILD UI
         # ============================
         self._build_ui()
+
+        # Ensure the optional voice stack is available after the UI is ready.
+        self.ensure_voice_dependencies()
+
         self.control_panel = JarvisControlPanel(self)
         self.control_panel.place_forget()
 
@@ -405,7 +406,10 @@ class JarvisHUD(tk.Tk):
             return
 
         try:
-            self.log_chat("system", f"Missing voice modules: {', '.join(missing)}. Installing local fallback stack...")
+            if hasattr(self, "chat_box"):
+                self.log_chat("system", f"Missing voice modules: {', '.join(missing)}. Installing local fallback stack...")
+            else:
+                print(f"[SYSTEM] Missing voice modules: {', '.join(missing)}. Installing local fallback stack...")
             subprocess.run(
                 [sys.executable, "-m", "pip", "install", *install_targets],
                 check=False,
@@ -413,7 +417,10 @@ class JarvisHUD(tk.Tk):
                 stderr=subprocess.DEVNULL,
             )
         except Exception as exc:
-            self.log_chat("warning", f"Voice dependency install failed: {exc}")
+            if hasattr(self, "chat_box"):
+                self.log_chat("warning", f"Voice dependency install failed: {exc}")
+            else:
+                print(f"[WARNING] Voice dependency install failed: {exc}")
             return
 
         for module_name in ("numpy", "sounddevice", "whisper"):
@@ -431,7 +438,10 @@ class JarvisHUD(tk.Tk):
                 pass
 
         if any(v is None for v in (sd, whisper, np)):
-            self.log_chat("warning", "Voice stack remains unavailable; running in degraded local-only mode.")
+            if hasattr(self, "chat_box"):
+                self.log_chat("warning", "Voice stack remains unavailable; running in degraded local-only mode.")
+            else:
+                print("[WARNING] Voice stack remains unavailable; running in degraded local-only mode.")
 
     def _sync_ready(self):
         self.sync.running = True
