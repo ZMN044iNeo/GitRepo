@@ -1413,9 +1413,6 @@ class JarvisHUD(tk.Tk):
                 tags="matrix_adaptive"
             )
 
-        # Increment phase
-        self.waveform_phase += 1
-
     # ============================================================
     # COMBINED MODE — RUN ALL FEATURES TOGETHER
     # ============================================================
