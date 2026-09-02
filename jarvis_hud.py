@@ -74,6 +74,7 @@ class JarvisHUD(tk.Tk):
         self.waveform_phase    = 0
         self.daemon_phase      = 0
         self.blueprint_phase   = 0
+        self.grid_pulse_phase  = 0
 
         # Voice state
         self.voice_running = False
@@ -622,16 +623,31 @@ class JarvisHUD(tk.Tk):
         self.log_chat("jarvis", "Voice command system offline.")
 
     def speak(self, text: str):
-        """Speak through Windows SAPI without requiring a web or Python TTS dependency."""
+        """Speak through Windows SAPI with a cleaner, more cinematic voice profile."""
         if not self.voice_output_enabled or not text:
             return
         threading.Thread(target=self._speak_worker, args=(text,), daemon=True).start()
 
     def _speak_worker(self, text: str):
+        voice_choice = ""
+        preferred = [
+            "Microsoft Zira Desktop",
+            "Microsoft David Desktop",
+            "Microsoft Mark Desktop",
+            "Microsoft Aria Desktop",
+            "Microsoft Jenny Desktop",
+            "Microsoft Hazel Desktop",
+        ]
+        for candidate in preferred:
+            voice_choice = candidate
+            break
+
         script = (
             "Add-Type -AssemblyName System.Speech; "
             "$speaker = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
-            "$speaker.Rate = 1; $speaker.Volume = 90; "
+            "$speaker.Rate = -1; $speaker.Volume = 95; "
+            f"$voices = $speaker.GetInstalledVoices(); "
+            f"foreach ($v in $voices) {{ if ($v.VoiceInfo.Name -match {voice_choice!r}) {{ $speaker.SelectVoice($v.VoiceInfo.Name); break }} }}; "
             f"$speaker.Speak({text!r})"
         )
         encoded = base64.b64encode(script.encode("utf-16le")).decode("ascii")
@@ -812,10 +828,12 @@ class JarvisHUD(tk.Tk):
     # BLUEPRINT GRID INTRO
     # ============================================================
     def cinematic_grid(self):
+        self.main_canvas.delete("cinematic_grid")
+        self.grid_pulse_phase = 0
         for x in range(0, 1280, 40):
-            self.main_canvas.create_line(x, 0, x, 300, fill="#003344", tags="cinematic_grid")
+            self.main_canvas.create_line(x, 0, x, 300, fill="#0a1a2a", width=1, tags="cinematic_grid")
         for y in range(0, 300, 40):
-            self.main_canvas.create_line(0, y, 1280, y, fill="#003344", tags="cinematic_grid")
+            self.main_canvas.create_line(0, y, 1280, y, fill="#0a1a2a", width=1, tags="cinematic_grid")
 
         self.sync_beam_canvas.create_rectangle(
             0, 0, 800, 40, fill="#00FFFF", outline="", tags="sync_flash"
@@ -825,6 +843,7 @@ class JarvisHUD(tk.Tk):
             if step > 20:
                 self.sync_beam_canvas.delete("sync_flash")
                 self.start_holographic_core()
+                self.animate_sonar_grid()
                 return
             alpha = max(0, 255 - step * 12)
             self.sync_beam_canvas.itemconfig(
@@ -833,6 +852,26 @@ class JarvisHUD(tk.Tk):
             self.after(40, lambda: fade_flash(step + 1))
 
         fade_flash()
+
+    def animate_sonar_grid(self):
+        if not self.particle_running:
+            return
+        self.grid_pulse_phase = (self.grid_pulse_phase + 1) % 100
+        for item in self.main_canvas.find_withtag("cinematic_grid"):
+            self.main_canvas.itemconfig(item, fill="#12273a")
+
+        pulse = 0.5 + (math.sin(self.grid_pulse_phase / 8.0) + 1) / 2
+        for x in range(0, 1280, 40):
+            for y in range(0, 300, 40):
+                target = self.main_canvas.find_overlapping(x - 5, y - 5, x + 5, y + 5)
+                if not target:
+                    continue
+                for item in target:
+                    if self.main_canvas.gettags(item) and "cinematic_grid" in self.main_canvas.gettags(item):
+                        alpha = int(20 + 30 * pulse)
+                        self.main_canvas.itemconfig(item, fill=f"#{alpha:02x}{alpha + 15:02x}{alpha + 30:02x}")
+
+        self.after(80, self.animate_sonar_grid)
 
     # ============================================================
     # HOLOGRAPHIC CORE
@@ -887,19 +926,65 @@ class JarvisHUD(tk.Tk):
     def stop_quantum_particles(self):
         self.particle_running = False
         self.particle_canvas.delete("all")
+        self.main_canvas.delete("matrix_overlay")
 
     def animate_particles(self):
         if not self.particle_running:
             return
+
+        self.main_canvas.delete("matrix_overlay")
         self.particle_canvas.delete("all")
-        cx, cy = 120, 100
-        color = "#AA00FF" if self.matrix_mode == "QUANTUM" else "#00FFFF"
+
+        cx, cy = 640, 150
+        color = "#cc66ff" if self.matrix_mode == "QUANTUM" else "#00e5ff"
+        pulse = 0.5 + (math.sin(self.particle_phase / 8.0) + 1) / 2
+
+        for ring in (70, 110, 150):
+            self.main_canvas.create_oval(
+                cx - ring, cy - ring, cx + ring, cy + ring,
+                outline=color, width=2, tags="matrix_overlay", stipple="gray50"
+            )
+
+        for i in range(36):
+            angle = (self.particle_phase / 12.0) + (i / 6.0)
+            radius = 72 + 35 * math.sin(i / 4.0 + self.particle_phase / 20.0)
+            x = cx + radius * math.cos(angle)
+            y = cy + radius * math.sin(angle * 1.3)
+            self.main_canvas.create_oval(
+                x - 2, y - 2, x + 2, y + 2,
+                fill=color, outline="", tags="matrix_overlay"
+            )
+
+        for i in range(12):
+            angle = (self.particle_phase / 6.0) + (i * math.pi / 6)
+            x = cx + 170 * math.cos(angle)
+            y = cy + 80 * math.sin(angle)
+            self.main_canvas.create_line(
+                cx, cy, x, y, fill=color, width=1, tags="matrix_overlay"
+            )
+
+        self.main_canvas.create_oval(
+            cx - 30 - 4 * pulse, cy - 30 - 4 * pulse,
+            cx + 30 + 4 * pulse, cy + 30 + 4 * pulse,
+            outline=color, width=3, tags="matrix_overlay"
+        )
+        self.main_canvas.create_text(
+            cx, cy + 90,
+            text="REACTIVE MATRIX // ACTIVE",
+            fill=color,
+            font=("Consolas", 10, "bold"),
+            tags="matrix_overlay"
+        )
+
+        cx2, cy2 = 120, 100
+        color2 = "#AA00FF" if self.matrix_mode == "QUANTUM" else "#00FFFF"
         for i in range(40):
             angle  = (self.particle_phase / 10.0) + (i / 5.0)
             radius = 40 + 20 * math.sin(i / 4.0)
-            x = cx + radius * math.cos(angle)
-            y = cy + radius * math.sin(angle * 1.5)
-            self.particle_canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill=color, outline="")
+            x = cx2 + radius * math.cos(angle)
+            y = cy2 + radius * math.sin(angle * 1.5)
+            self.particle_canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill=color2, outline="")
+
         self.particle_phase += 1
         self.after(40, self.animate_particles)
 
