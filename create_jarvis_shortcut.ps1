@@ -30,6 +30,7 @@ $shortcutPath = Join-Path $desktop "Jarvis.lnk"
 $legacyShortcutPath = Join-Path $desktop "JARVIS HUD V4.0.lnk"
 $hudPath = Join-Path $PSScriptRoot "jarvis_hud.py"
 $pythonPath = "C:\Users\pharo\AppData\Local\Programs\Python\Python312\python.exe"
+$pythonWindowlessPath = "C:\Users\pharo\AppData\Local\Programs\Python\Python312\pythonw.exe"
 
 if (-not (Test-Path -LiteralPath $hudPath)) {
     throw "Jarvis HUD was not found: $hudPath"
@@ -37,11 +38,16 @@ if (-not (Test-Path -LiteralPath $hudPath)) {
 
 if (-not (Test-Path -LiteralPath $pythonPath)) {
     $pythonPath = (Get-Command python -ErrorAction Stop).Source
+    $pythonWindowlessPath = Join-Path (Split-Path -Parent $pythonPath) "pythonw.exe"
+}
+
+if (-not (Test-Path -LiteralPath $pythonWindowlessPath)) {
+    $pythonWindowlessPath = $pythonPath
 }
 
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = $pythonPath
+$shortcut.TargetPath = $pythonWindowlessPath
 $shortcut.Arguments = "`"$hudPath`""
 $shortcut.WorkingDirectory = $PSScriptRoot
 $shortcut.WindowStyle = 1
