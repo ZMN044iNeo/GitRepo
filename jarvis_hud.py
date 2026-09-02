@@ -89,6 +89,7 @@ class JarvisHUD(tk.Tk):
         self.core_running = False
         self.core_phase = 0
         self.daemon_stop_job = None
+        self.upgrade_running = False
 
         # ============================
         # ROUTER (modular command system)
@@ -261,6 +262,7 @@ class JarvisHUD(tk.Tk):
         (r"weather",            lambda: "No network access. Weather module offline."),
         (r"ffmpeg|compress|video", lambda: "ffmpeg command ready. Specify input and output files."),
         (r"dj|prep|track",      lambda: "DJ prep sequence standing by. Specify your audio file."),
+        (r"install|upgrade|patch", lambda: "Upgrade pipeline ready. Use: jarvis install upgrades"),
     ]
 
     def _local_respond(self, text: str):
@@ -326,6 +328,8 @@ class JarvisHUD(tk.Tk):
             return "jarvis pulse daemon"
         if "cinematic" in t or "replay boot" in t:
             return "jarvis cinematic replay"
+        if ("install" in t or "upgrade" in t) and ("jarvis" in t or "system" in t or "patch" in t or "feature" in t):
+            return "jarvis install upgrades"
 
         # ---- voice ----
         if "voice output" in t or "speech output" in t or "speaker" in t:
@@ -483,6 +487,10 @@ class JarvisHUD(tk.Tk):
             self.log_chat("jarvis", "Cinematic sequence replayed.")
             return
 
+        if cmd in ("jarvis install upgrades", "jarvis upgrade install", "jarvis install"):
+            self.start_upgrade_pipeline()
+            return
+
         if cmd == "jarvis voice on":
             self.start_voice_commands()
             return
@@ -558,6 +566,36 @@ class JarvisHUD(tk.Tk):
         if action == "read":
             return self.coding_assistant.read_file(value)
         return f"Unknown coding action: {action}"
+
+    def start_upgrade_pipeline(self):
+        """Attempt local feature upgrades for the optional voice stack and helper modules."""
+        if self.upgrade_running:
+            self.log_chat("warning", "Upgrade pipeline already in progress.")
+            return
+        self.upgrade_running = True
+        self.log_chat("system", "Launching local upgrade pipeline...")
+        threading.Thread(target=self._upgrade_worker, daemon=True).start()
+
+    def _upgrade_worker(self):
+        packages = ["numpy", "openai-whisper", "sounddevice"]
+        try:
+            self.after(0, lambda: self.log_chat("system", f"Installing: {', '.join(packages)}"))
+            proc = subprocess.run(
+                [sys.executable, "-m", "pip", "install", *packages],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            output = (proc.stdout or "") + (proc.stderr or "")
+            if proc.returncode == 0:
+                self.after(0, lambda: self.log_chat("jarvis", "Upgrade pipeline complete. Voice stack refreshed."))
+                self.after(0, lambda: self.speak("Upgrade pipeline complete. Systems upgraded."))
+            else:
+                self.after(0, lambda: self.log_chat("error", f"Upgrade pipeline failed: {output[:500]}"))
+        except Exception as exc:
+            self.after(0, lambda: self.log_chat("error", f"Upgrade pipeline error: {exc}"))
+        finally:
+            self.after(0, lambda: setattr(self, "upgrade_running", False))
 
     # ============================================================
     # LOCAL VOICE ENGINE  (Whisper + sounddevice)
