@@ -55,9 +55,10 @@ class JarvisHUD(tk.Tk):
         # WINDOW
         # ============================
         self.title("JARVIS HUD V4.0")
-        self.geometry("1280x720")
+        self.geometry("1600x900")
+        self.minsize(1200, 760)
         self.configure(bg="#020b12")
-        self.attributes("-alpha", 0.96)
+        self.attributes("-alpha", 0.98)
         self.fullscreen_mode = False
         self.bind("<F11>", lambda event=None: self.toggle_fullscreen())
         self.bind("<Escape>", lambda event=None: self.exit_fullscreen())
@@ -195,35 +196,35 @@ class JarvisHUD(tk.Tk):
 
         # ---- canvases ----
         self.main_canvas = tk.Canvas(
-            self, width=1280, height=300, bg="#020b12", highlightthickness=0
+            self, width=1500, height=360, bg="#020b12", highlightthickness=0
         )
-        self.main_canvas.pack(fill="x")
+        self.main_canvas.pack(fill="x", padx=0, pady=0)
         self.main_canvas.configure(highlightthickness=0)
 
         self.blueprint_canvas = tk.Canvas(
-            self.main_canvas, width=800, height=200, bg="#020b12", highlightthickness=0
+            self.main_canvas, width=860, height=220, bg="#020b12", highlightthickness=0
         )
-        self.blueprint_canvas.place(x=240, y=40)
+        self.blueprint_canvas.place(x=370, y=48)
 
         self.core_canvas = tk.Canvas(
-            self.main_canvas, width=320, height=200, bg="#020b12", highlightthickness=0
+            self.main_canvas, width=360, height=220, bg="#020b12", highlightthickness=0
         )
-        self.core_canvas.place(x=480, y=40)
+        self.core_canvas.place(x=510, y=46)
 
         self.particle_canvas = tk.Canvas(
-            self.main_canvas, width=240, height=200, bg="#020b12", highlightthickness=0
+            self.main_canvas, width=260, height=200, bg="#020b12", highlightthickness=0
         )
-        self.particle_canvas.place(x=10, y=40)
+        self.particle_canvas.place(x=350, y=52)
 
         self.waveform_canvas = tk.Canvas(
-            self.main_canvas, width=240, height=90, bg="#020b12", highlightthickness=0
+            self.main_canvas, width=320, height=100, bg="#020b12", highlightthickness=0
         )
-        self.waveform_canvas.place(x=500, y=210)
+        self.waveform_canvas.place(x=500, y=235)
 
         self.sync_beam_canvas = tk.Canvas(
-            self.main_canvas, width=800, height=40, bg="#020b12", highlightthickness=0
+            self.main_canvas, width=840, height=44, bg="#020b12", highlightthickness=0
         )
-        self.sync_beam_canvas.place(x=240, y=10)
+        self.sync_beam_canvas.place(x=340, y=12)
 
         # ---- chat & console (read-only Text widgets) ----
         self.chat_box = tk.Text(

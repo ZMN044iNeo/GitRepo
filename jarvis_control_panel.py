@@ -1,8 +1,8 @@
 import tkinter as tk
 
 
-class JarvisControlPanel(tk.Toplevel):
-    """Native control surface for the Jarvis HUD."""
+class JarvisControlPanel(tk.Frame):
+    """Compact docked control surface for the Jarvis HUD."""
 
     BACKGROUND = "#05080b"
     PANEL = "#0c141b"
@@ -14,14 +14,11 @@ class JarvisControlPanel(tk.Toplevel):
     MUTED = "#9bb4bd"
 
     def __init__(self, hud):
-        super().__init__(hud)
+        super().__init__(hud, bg=self.BACKGROUND, highlightthickness=0)
         self.hud = hud
-        self.title("JARVIS Control Surface")
-        self.geometry("420x560")
-        self.minsize(360, 500)
-        self.configure(bg=self.BACKGROUND)
-        self.attributes("-topmost", True)
-        self.protocol("WM_DELETE_WINDOW", self.withdraw)
+        self.configure(width=320, height=620)
+        self.pack_propagate(False)
+        self.place(x=18, y=68, width=320, height=620)
 
         self.status_var = tk.StringVar()
         self.mode_var = tk.StringVar()
@@ -169,12 +166,9 @@ class JarvisControlPanel(tk.Toplevel):
         self.refresh()
 
     def show_in_foreground(self):
-        """Restore and raise the panel after the main HUD completes startup."""
-        self.deiconify()
-        self.lift()
-        self.attributes("-topmost", True)
-        self.after(150, lambda: self.attributes("-topmost", False))
-        self.focus_force()
+        """Bring the compact HUD dock into focus when the system is ready."""
+        self.tkraise()
+        self.focus_set()
 
     def refresh(self):
         if not self.winfo_exists():
