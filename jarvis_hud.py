@@ -163,7 +163,7 @@ class JarvisHUD(tk.Tk):
             bg="#020b12",
             font=("Consolas", 16),
         )
-        self.lbl_telemetry_1.pack(pady=10)
+        self.lbl_telemetry_1.pack(pady=4)
 
         self.lbl_status = tk.Label(
             self,
@@ -172,7 +172,7 @@ class JarvisHUD(tk.Tk):
             bg="#020b12",
             font=("Consolas", 16),
         )
-        self.lbl_status.pack(pady=10)
+        self.lbl_status.pack(pady=2)
 
         self.corner_menu = tk.Menubutton(
             self,
@@ -204,22 +204,22 @@ class JarvisHUD(tk.Tk):
         self.blueprint_canvas = tk.Canvas(
             self.main_canvas, width=860, height=220, bg="#020b12", highlightthickness=0
         )
-        self.blueprint_canvas.place(x=370, y=48)
+        self.blueprint_canvas.place(x=300, y=48)
 
         self.core_canvas = tk.Canvas(
             self.main_canvas, width=360, height=220, bg="#020b12", highlightthickness=0
         )
-        self.core_canvas.place(x=510, y=46)
+        self.core_canvas.place(x=570, y=46)
 
         self.particle_canvas = tk.Canvas(
             self.main_canvas, width=260, height=200, bg="#020b12", highlightthickness=0
         )
-        self.particle_canvas.place(x=350, y=52)
+        self.particle_canvas.place(x=490, y=52)
 
         self.waveform_canvas = tk.Canvas(
-            self.main_canvas, width=320, height=100, bg="#020b12", highlightthickness=0
+            self.main_canvas, width=380, height=90, bg="#020b12", highlightthickness=0
         )
-        self.waveform_canvas.place(x=500, y=235)
+        self.waveform_canvas.place(x=540, y=240)
 
         self.sync_beam_canvas = tk.Canvas(
             self.main_canvas, width=840, height=44, bg="#020b12", highlightthickness=0
@@ -231,36 +231,38 @@ class JarvisHUD(tk.Tk):
             self,
             fg="#00FF00",
             bg="#000000",
-            font=("Consolas", 12),
-            height=10,
+            font=("Consolas", 10),
+            height=8,
             state="disabled",
             insertbackground="#00FF00",
         )
-        self.chat_box.pack(fill="x", padx=10, pady=5)
+        self.chat_box.pack(fill="x", padx=10, pady=3)
 
         self.console_box = tk.Text(
             self,
             fg="#00FFFF",
             bg="#050505",
-            font=("Consolas", 10),
-            height=6,
+            font=("Consolas", 9),
+            height=4,
             state="disabled",
         )
-        self.console_box.pack(fill="x", padx=10, pady=5)
+        self.console_box.pack(fill="x", padx=10, pady=3)
 
         # ---- command entry ----
         self.cmd_entry = tk.Entry(
-            self, fg="#00FFFF", bg="#000000", font=("Consolas", 14)
+            self, fg="#00FFFF", bg="#000000", font=("Consolas", 12)
         )
-        self.cmd_entry.pack(fill="x", padx=10, pady=5)
+        self.cmd_entry.pack(fill="x", padx=10, pady=3)
         self.cmd_entry.bind("<Return>", lambda _e: self._on_cmd_enter())
         self.cmd_entry.focus_set()
 
     def _build_corner_menu(self):
         menu = self.corner_menu.menu
+        menu.add_command(label="System Status", command=lambda: self.process_command("jarvis status", original="jarvis status"))
         menu.add_command(label="Matrix: Default", command=lambda: self.process_command("jarvis matrix default", original="jarvis matrix default"))
         menu.add_command(label="Matrix: Quantum", command=lambda: self.process_command("jarvis matrix quantum", original="jarvis matrix quantum"))
         menu.add_command(label="Matrix: Stealth", command=lambda: self.process_command("jarvis matrix stealth", original="jarvis matrix stealth"))
+        menu.add_command(label="Matrix: Overclock", command=lambda: self.process_command("jarvis matrix overclock", original="jarvis matrix overclock"))
         menu.add_separator()
         menu.add_command(label="Voice: On", command=lambda: self.process_command("jarvis voice on", original="jarvis voice on"))
         menu.add_command(label="Voice: Off", command=lambda: self.process_command("jarvis voice off", original="jarvis voice off"))
@@ -271,10 +273,15 @@ class JarvisHUD(tk.Tk):
         menu.add_command(label="Cinematic Replay", command=lambda: self.process_command("jarvis cinematic replay", original="jarvis cinematic replay"))
         menu.add_separator()
         menu.add_command(label="Self Debug", command=lambda: self.process_command("jarvis self debug", original="jarvis self debug"))
-        menu.add_command(label="Status", command=lambda: self.process_command("jarvis status", original="jarvis status"))
-        menu.add_separator()
         menu.add_command(label="Toggle Fullscreen", command=self.toggle_fullscreen)
-        menu.add_command(label="Open Control Surface", command=lambda: self.control_panel.show_in_foreground())
+        menu.add_command(label="Toggle Control Panel", command=self.toggle_control_panel)
+
+    def toggle_control_panel(self):
+        if self.control_panel.winfo_exists() and self.control_panel.winfo_ismapped():
+            self.control_panel.place_forget()
+        else:
+            self.control_panel.place(x=18, y=68, width=320, height=620)
+            self.control_panel.tkraise()
 
     def toggle_fullscreen(self):
         try:
