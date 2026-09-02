@@ -7,13 +7,20 @@ def _headers():
 
 
 def get_printer_status() -> dict:
-    resp = requests.get(
-        f"{HA_URL}/api/states/sensor.elegoo_printer",
-        headers=_headers(),
-        timeout=5,
-    )
-    resp.raise_for_status()
-    return resp.json()
+    try:
+        resp = requests.get(
+            f"{HA_URL}/api/states/sensor.elegoo_printer",
+            headers=_headers(),
+            timeout=5,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        return {
+            "status": "offline",
+            "message": "Elego printer integration is unavailable on this machine.",
+            "host": HA_URL,
+        }
 
 
 def register(jarvis):

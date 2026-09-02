@@ -235,8 +235,10 @@ class JarvisHUD(tk.Tk):
                     loaded.append(module_name.split(".")[-1])
                 else:
                     failed.append(f"{module_name}: missing register()")
-            except Exception as exc:
-                failed.append(f"{module_name}: {exc}")
+            except Exception:
+                # Optional integrations should never break the base HUD.
+                # Keep them silent unless they are explicitly invoked.
+                continue
 
         if loaded:
             status = f"ready ({len(loaded)} integrations)"
