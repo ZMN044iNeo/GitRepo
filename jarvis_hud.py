@@ -327,6 +327,7 @@ class JarvisHUD(tk.Tk):
         menu.add_command(label="Blueprint Scan", command=lambda: self.process_command("jarvis scan blueprint", original="jarvis scan blueprint"))
         menu.add_command(label="Daemon Pulse", command=lambda: self.process_command("jarvis pulse daemon", original="jarvis pulse daemon"))
         menu.add_command(label="Cinematic Replay", command=lambda: self.process_command("jarvis cinematic replay", original="jarvis cinematic replay"))
+        menu.add_command(label="Combined Mode", command=lambda: self.process_command("jarvis combined mode", original="jarvis combined mode"))
         menu.add_separator()
         menu.add_command(label="Self Debug", command=lambda: self.process_command("jarvis self debug", original="jarvis self debug"))
         menu.add_command(label="Toggle Fullscreen", command=self.toggle_fullscreen)
@@ -548,6 +549,8 @@ class JarvisHUD(tk.Tk):
             return "jarvis cinematic replay"
         if "premium" in t or "showcase" in t or "movie" in t:
             return "jarvis premium showcase"
+        if "combined" in t or "all systems" in t or "full power" in t:
+            return "jarvis combined mode"
         if "debug" in t or "diagnostic" in t or "self check" in t:
             return "jarvis self debug"
         if ("install" in t or "upgrade" in t) and ("jarvis" in t or "system" in t or "patch" in t or "feature" in t):
@@ -712,6 +715,10 @@ class JarvisHUD(tk.Tk):
         if cmd == "jarvis premium showcase":
             self.start_premium_showcase()
             self.log_chat("jarvis", "Premium showcase matrix engaged.")
+            return
+
+        if cmd == "jarvis combined mode" or cmd == "jarvis all systems":
+            self.activate_combined_mode()
             return
 
         if cmd == "jarvis self debug":
@@ -1050,138 +1057,88 @@ class JarvisHUD(tk.Tk):
         self.console_box.config(state="disabled")
 
     # ============================================================
-    # CINEMATIC BOOT
+    # CINEMATIC BOOT SEQUENCE
     # ============================================================
     def cinematic_boot(self):
-        self.log_chat("system", "JARVIS HUD V4.0 initializing…")
-        self.log_chat("system", f"Router: {self._router_init_status}")
-        self.update_status("BOOTING")
-        self.set_matrix_mode("DEFAULT")
-        # Don't start particles yet - let cinematic finish first
-        self.cinematic_view()
-        self.after(1500, lambda: (self.update_status("ONLINE"), self.control_panel.refresh()))
-
-    def cinematic_view(self):
-        # Clean slate: clear all cinematic tags to prepare for fresh animation
-        self.cinematic_active = True
-        self.main_canvas.delete("cinematic_overlay")
-        self.main_canvas.delete("cinematic_arc")
-        self.main_canvas.delete("cinematic_grid")
-        self.main_canvas.delete("cinematic_labels")
-        self.sync_beam_canvas.delete("all")
-        self.cinematic_arc_reactor()
-
-    # ============================================================
-    # ARC REACTOR INTRO
-    # ============================================================
-    def cinematic_arc_reactor(self):
-        # centered on main_canvas (new dimensions: 1280x300)
-        self.cinematic_active = True
-        cx, cy, base_r = 640, 150, 30
-
-        def pulse(step=0):
-            if not self.cinematic_active:
-                return
-            self.main_canvas.delete("cinematic_arc")
-            r = base_r + step
-            
-            # Expanding rings
-            self.main_canvas.create_oval(
-                cx - r, cy - r, cx + r, cy + r,
-                outline="#00FFFF", width=3, tags="cinematic_arc",
-            )
-            
-            # Add inner core glow
-            if r > 20:
-                self.main_canvas.create_oval(
-                    cx - (r * 0.4), cy - (r * 0.4), cx + (r * 0.4), cy + (r * 0.4),
-                    outline="#00FFFF", width=1, tags="cinematic_arc",
-                )
-            
-            if step < 100:
-                self.after(20, lambda: pulse(step + 2))
-            else:
-                # Final frame: expand to full size with border and labels
-                self.main_canvas.delete("cinematic_arc")
-                
-                # Outer border rectangle
-                border_size = 180
-                self.main_canvas.create_rectangle(
-                    cx - border_size, cy - border_size,
-                    cx + border_size, cy + border_size,
-                    outline="#00FFFF", width=2, tags="cinematic_arc"
-                )
-                
-                # Final reactor rings
-                for ring_r in (40, 75, 110):
-                    self.main_canvas.create_oval(
-                        cx - ring_r, cy - ring_r, cx + ring_r, cy + ring_r,
-                        outline="#00FFFF", width=2, tags="cinematic_arc",
-                    )
-                
-                # Center point
-                self.main_canvas.create_oval(
-                    cx - 6, cy - 6, cx + 6, cy + 6,
-                    fill="#00FFFF", outline="", tags="cinematic_arc"
-                )
-                
-                # Labels will be redrawn on top after canvases are placed
-                self.cinematic_grid()
-
-        pulse()
-
-    # ============================================================
-    # BLUEPRINT GRID INTRO
-    # ============================================================
-    def cinematic_grid(self):
-        if not self.cinematic_active:
+        """Primary boot animation sequence."""
+        if self.cinematic_active:
             return
-        self.main_canvas.delete("cinematic_grid")
+
+        self.cinematic_active = True
+        self.current_status = "BOOTING"
+        self.lbl_status.config(text="● BOOTING", fg="#FFAA00")
+
+        # Reset phases
+        self.core_phase = 0
         self.grid_pulse_phase = 0
-        for x in range(0, 1280, 40):
-            self.main_canvas.create_line(x, 0, x, 300, fill="#0b1520", width=1, tags="cinematic_grid")
-        for y in range(0, 300, 40):
-            # Skip y=10-40 region (sync beam) to avoid corrupting it
-            if y < 10 or y > 40:
-                self.main_canvas.create_line(0, y, 1280, y, fill="#0b1520", width=1, tags="cinematic_grid")
+        self.blueprint_phase = 0
 
+        # Start sequence
+        self.after(100, self._cinematic_step_1)
+
+    def _cinematic_step_1(self):
+        """Fade-in + sync beam pulse."""
         self.sync_beam_canvas.delete("all")
-        self.sync_beam_canvas.create_rectangle(
-            0, 0, 800, 40, fill="#00FFFF", outline="", tags="sync_flash"
-        )
 
-        def fade_flash(step=0):
-            if not self.cinematic_active:
-                return
-            if step > 20:
-                self.sync_beam_canvas.delete("all")
-                self.cinematic_active = False
-                self.start_blueprint_scan()
-                self.start_quantum_particles()
-                self.start_holographic_core()
-                # Draw labels on main_canvas (will appear above all child canvases)
-                cx, cy = 640, 150
-                self.main_canvas.create_text(
-                    cx, cy - 165,
-                    text="JARVIS",
-                    fill="#00FFFF", font=("Consolas", 14, "bold"), tags="labels"
-                )
-                self.main_canvas.create_text(
-                    cx, cy + 165,
-                    text="CORE",
-                    fill="#00FFFF", font=("Consolas", 14, "bold"), tags="labels"
-                )
-                return
-            # Fade from cyan (0,255,255) to black (0,0,0)
-            progress = step / 20.0
-            r = int(0)
-            g = int(255 * (1 - progress))
-            b = int(255 * (1 - progress))
-            color = f"#{r:02x}{g:02x}{b:02x}"
-            self.sync_beam_canvas.itemconfig("sync_flash", fill=color)
-            self.after(40, lambda: fade_flash(step + 1))
+        # Simple beam pulse
+        for i in range(6):
+            self.sync_beam_canvas.create_line(
+                0, 20, 800, 20,
+                fill="#00FFFF",
+                width=1 + i,
+                stipple="gray50",
+                tags="beam"
+            )
 
-        fade_flash()
+        self.after(300, self._cinematic_step_2)
+
+    def _cinematic_step_2(self):
+        """Blueprint grid reveal."""
+        self.blueprint_canvas.delete("all")
+
+        # Draw grid
+        for x in range(0, 800, 40):
+            self.blueprint_canvas.create_line(
+                x, 0, x, 200,
+                fill="#0a3a4a",
+                width=1,
+                tags="grid"
+            )
+        for y in range(0, 200, 40):
+            self.blueprint_canvas.create_line(
+                0, y, 800, y,
+                fill="#0a3a4a",
+                width=1,
+                tags="grid"
+            )
+
+        self.blueprint_scanning = True
+        self.after(400, self._cinematic_step_3)
+
+    def _cinematic_step_3(self):
+        """Particle engine activation."""
+        self.particle_canvas.place(x=10, y=40)
+        self.particle_running = True
+
+        self.after(400, self._cinematic_step_4)
+
+    def _cinematic_step_4(self):
+        """Waveform engine activation."""
+        self.waveform_running = True
+
+        self.after(400, self._cinematic_step_5)
+
+    def _cinematic_step_5(self):
+        """Final sync + ONLINE state."""
+        self.current_status = "ONLINE"
+        self.lbl_status.config(text="● ONLINE", fg="#00FF00")
+
+        self.blueprint_scanning = False
+        self.grid_pulse_running = False
+
+        self.cinematic_active = False
+        self.log_chat("jarvis", "HUD online and fully operational.")
+        self.control_panel.refresh()
 
     def animate_sonar_grid(self):
         # This is now handled by animate_particles grid overlay
@@ -1344,6 +1301,53 @@ class JarvisHUD(tk.Tk):
             return
         # Placeholder: premium animation rendering
         pass
+
+    # ============================================================
+    # COMBINED MODE — RUN ALL FEATURES TOGETHER
+    # ============================================================
+    def activate_combined_mode(self):
+        """Enable ALL HUD engines simultaneously."""
+        self.log_chat("jarvis", "Activating combined mode: all engines online.")
+
+        # Status
+        self.current_status = "COMBINED"
+        self.lbl_status.config(text="● COMBINED MODE", fg="#00FFFF")
+
+        # Turn on all animation engines
+        self.particle_running      = True
+        self.waveform_running      = True
+        self.blueprint_scanning    = True
+        self.daemon_running        = True
+        self.grid_pulse_running    = True
+        self.premium_running       = True
+
+        # Reset phases for clean sync
+        self.particle_phase        = 0
+        self.waveform_phase        = 0
+        self.daemon_phase          = 0
+        self.blueprint_phase       = 0
+        self.grid_pulse_phase      = 0
+        self.premium_phase         = 0
+
+        # Ensure canvases are visible
+        self.particle_canvas.place(x=10, y=40)
+        self.waveform_canvas.place(x=10, y=250)
+        self.blueprint_canvas.place(x=240, y=40)
+        self.sync_beam_canvas.place(x=240, y=10)
+
+        # Lift canvases in correct order
+        self.main_canvas.lift()
+        self.blueprint_canvas.lift()
+        self.particle_canvas.lift()
+        self.waveform_canvas.lift()
+        self.sync_beam_canvas.lift()
+
+        # Start voice reactivity if voice is active
+        if self.voice_running:
+            self._voice_reactivity()
+
+        # Log
+        self.log_chat("jarvis", "All systems running concurrently.")
 
     # ============================================================
     # SYNC HOOKS  (call these from anywhere to push events to the bus)
