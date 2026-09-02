@@ -39,7 +39,7 @@ def start_sync_server():
     # Wait for server to start
     time.sleep(1)
     if proc.poll() is None:
-        log("✓ Sync Server running (PID: {})".format(proc.pid), "SUCCESS")
+        log("Sync Server running (PID: {})".format(proc.pid), "SUCCESS")
         return proc
     else:
         stderr = proc.stderr.read() if proc.stderr else ""
@@ -91,7 +91,7 @@ def start_hologram(enable=False):
     
     time.sleep(2)
     if proc.poll() is None:
-        log("✓ Hologram Dashboard running at http://localhost:8501", "SUCCESS")
+        log("Hologram Dashboard running at http://localhost:8501", "SUCCESS")
         return proc
     else:
         log("Hologram Dashboard failed to start", "ERROR")
@@ -100,10 +100,8 @@ def start_hologram(enable=False):
 
 def main():
     """Orchestrate full system startup."""
-    log("╔════════════════════════════════════════╗", "INFO")
-    log("║   JARVIS V4.0 UNIFIED LAUNCHER        ║", "INFO")
-    log("║   Tkinter HUD + Sync Server            ║", "INFO")
-    log("╚════════════════════════════════════════╝", "INFO")
+    log("JARVIS V4.0 UNIFIED LAUNCHER", "INFO")
+    log("Tkinter HUD + Sync Server", "INFO")
     
     # Parse args
     enable_hologram = "--hologram" in sys.argv
@@ -118,7 +116,7 @@ def main():
         hologram_proc = start_hologram(enable=True)
     
     log("", "INFO")
-    log("═" * 50, "INFO")
+    log("=" * 50, "INFO")
     
     try:
         # Main loop: HUD runs in foreground
@@ -145,7 +143,7 @@ def main():
             except subprocess.TimeoutExpired:
                 hologram_proc.kill()
         
-        log("✓ JARVIS system offline", "SUCCESS")
+        log("JARVIS system offline", "SUCCESS")
         sys.exit(0)
 
 

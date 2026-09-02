@@ -43,7 +43,8 @@ if (-not (Test-Path -LiteralPath $launcherPath)) {
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
 $shortcut.TargetPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-$shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$launcherPath`" -Hologram:$($Hologram.IsPresent.ToString().ToLower())"
+$hologramArgument = if ($Hologram) { " -Hologram" } else { "" }
+$shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$launcherPath`"$hologramArgument"
 $shortcut.WorkingDirectory = $PSScriptRoot
 $shortcut.WindowStyle = 1
 $shortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,220"
