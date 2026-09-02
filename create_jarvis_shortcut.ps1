@@ -28,10 +28,11 @@ if (-not $desktop) {
 
 $shortcutPath = Join-Path $desktop "Jarvis.lnk"
 $legacyShortcutPath = Join-Path $desktop "JARVIS HUD V4.0.lnk"
-$launcherPath = Join-Path $PSScriptRoot "launch_jarvis_unified.cmd"
+$psLauncher = Join-Path $PSScriptRoot "launch_jarvis_unified.ps1"
+$cmdLauncher = Join-Path $PSScriptRoot "launch_jarvis_unified.cmd"
 
-if (-not (Test-Path -LiteralPath $launcherPath)) {
-    throw "Jarvis launcher was not found: $launcherPath"
+if (-not (Test-Path -LiteralPath $psLauncher)) {
+    throw "Jarvis PowerShell launcher was not found: $psLauncher"
 }
 
 $pythonPath = $null
@@ -47,13 +48,21 @@ foreach ($candidate in @(
 }
 
 if (-not $pythonPath) {
-    $pythonPath = (Get-Command python -ErrorAction Stop).Source
+    $pythonPath = (Get-Command python -ErrorAction SilentlyContinue)?.Source
+}
+
+if (-not $pythonPath) {
+    $pythonPath = (Get-Command py -ErrorAction SilentlyContinue)?.Source
+}
+
+if (-not $pythonPath) {
+    $pythonPath = "C:\Windows\System32\cmd.exe"
 }
 
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = "cmd.exe"
-$shortcut.Arguments = "/c `"`"$launcherPath`"`""
+$shortcut.TargetPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+$shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$psLauncher`""
 $shortcut.WorkingDirectory = $PSScriptRoot
 $shortcut.WindowStyle = 1
 $shortcut.IconLocation = "$pythonPath,0"
