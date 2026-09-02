@@ -1185,7 +1185,7 @@ class JarvisHUD(tk.Tk):
         self.after(40, self.animate_holographic_core)
 
     # ============================================================
-    # MATRIX COLOR MODES (DEFAULT / QUANTUM / STEALTH / OVERCLOCK)
+    # HOLOGRAPHIC MATRIX COLOR MODES
     # ============================================================
     def _matrix_colors(self):
         """Return color palette based on current matrix mode."""
