@@ -27,13 +27,21 @@ if (-not $desktop) {
 }
 
 $shortcutPath = Join-Path $desktop "Jarvis.lnk"
-$legacyShortcutPath = Join-Path $desktop "JARVIS HUD V4.0.lnk"
-$psLauncher = Join-Path $PSScriptRoot "launch_jarvis_unified.ps1"
-$cmdLauncher = Join-Path $PSScriptRoot "launch_jarvis_unified.cmd"
+$legacyShortcutPaths = @(
+    (Join-Path $desktop "JARVIS HUD V4.0.lnk"),
+    (Join-Path $desktop "launch_jarvis_unified.lnk"),
+    (Join-Path $desktop "Jarvis HUD V4.0.lnk"),
+    (Join-Path $desktop "JARVIS.lnk")
+) | Select-Object -Unique
 
-if (-not (Test-Path -LiteralPath $psLauncher)) {
-    throw "Jarvis PowerShell launcher was not found: $psLauncher"
+$cmdLauncher = Join-Path $PSScriptRoot "launch_jarvis_unified.cmd"
+$batLauncher = Join-Path $PSScriptRoot "launch_jarvis_unified.bat"
+
+if (-not (Test-Path -LiteralPath $cmdLauncher) -and -not (Test-Path -LiteralPath $batLauncher)) {
+    throw "No working JARVIS launcher was found in the repo root."
 }
+
+$launcherToUse = if (Test-Path -LiteralPath $cmdLauncher) { $cmdLauncher } else { $batLauncher }
 
 $pythonPath = $null
 foreach ($candidate in @(
@@ -59,18 +67,21 @@ if (-not $pythonPath) {
     $pythonPath = "C:\Windows\System32\cmd.exe"
 }
 
+foreach ($legacy in $legacyShortcutPaths) {
+    if ($legacy -and $legacy -ne $shortcutPath -and (Test-Path -LiteralPath $legacy)) {
+        Remove-Item -LiteralPath $legacy -Force
+    }
+}
+
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
-$shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$psLauncher`""
+$shortcut.TargetPath = "C:\Windows\System32\cmd.exe"
+$shortcut.Arguments = "/c `"`"$launcherToUse`"`""
 $shortcut.WorkingDirectory = $PSScriptRoot
 $shortcut.WindowStyle = 1
 $shortcut.IconLocation = "$pythonPath,0"
 $shortcut.Description = "Launch JARVIS HUD V4.0 and native control surface"
 $shortcut.Save()
 
-if ($legacyShortcutPath -ne $shortcutPath -and (Test-Path -LiteralPath $legacyShortcutPath)) {
-    Remove-Item -LiteralPath $legacyShortcutPath -Force
-}
-
-Write-Host "Created shortcut: $shortcutPath"
+Write-Host "Created working shortcut: $shortcutPath"
+Write-Host "Launcher used: $launcherToUse"
