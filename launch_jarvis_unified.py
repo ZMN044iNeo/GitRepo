@@ -29,13 +29,14 @@ def install_voice_stack() -> bool:
 
 
 def start_hud() -> None:
-    """Start the Tkinter HUD as a GUI-safe process."""
+    """Start the Tkinter HUD directly in the foreground."""
     log("Starting JARVIS HUD V4.0...", "INIT")
     try:
         import whisper  # noqa: F401
         import sounddevice  # noqa: F401
         import numpy  # noqa: F401
-    except ImportError:
+    except ImportError as exc:
+        log(f"Optional voice stack not available: {exc}", "WARN")
         # Optional voice stack is not required for the HUD to boot, but
         # we attempt a repair so live voice can work on supported machines.
         install_voice_stack()
@@ -46,12 +47,22 @@ def start_hud() -> None:
         return
 
     launcher = sys.executable
-    log(f"Launching GUI process: {launcher}", "INIT")
-    subprocess.Popen(
-        [launcher, str(hud_script)],
-        cwd=str(REPO_ROOT),
-        creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0) if os.name == "nt" else 0,
-    )
+    log(f"Using Python: {launcher}", "INFO")
+    log(f"Running: {hud_script}", "INFO")
+    log(f"Working directory: {REPO_ROOT}", "INFO")
+    
+    try:
+        # Run the HUD in the foreground so we can see startup errors.
+        result = subprocess.run(
+            [launcher, str(hud_script)],
+            cwd=str(REPO_ROOT),
+            check=False,
+        )
+        log(f"HUD process exited with code: {result.returncode}", "INFO")
+    except Exception as exc:
+        log(f"Failed to start HUD process: {exc}", "ERROR")
+        import traceback
+        traceback.print_exc()
 
 
 def main() -> None:
