@@ -205,11 +205,6 @@ class JarvisHUD(tk.Tk):
         self.main_canvas.pack(fill="x")
         self.main_canvas.configure(highlightthickness=0)
 
-        self.sync_beam_canvas = tk.Canvas(
-            self.main_canvas, width=800, height=40, bg="#000000", highlightthickness=0
-        )
-        self.sync_beam_canvas.place(x=240, y=10)
-
         self.blueprint_canvas = tk.Canvas(
             self.main_canvas, width=800, height=200, bg="#000000", highlightthickness=0
         )
@@ -220,6 +215,11 @@ class JarvisHUD(tk.Tk):
         )
         self.particle_canvas.place(x=10, y=40)
         self.particle_canvas.place_forget()  # Hide unused canvas
+
+        self.sync_beam_canvas = tk.Canvas(
+            self.main_canvas, width=800, height=40, bg="#000000", highlightthickness=0
+        )
+        self.sync_beam_canvas.place(x=240, y=10)
 
         self.waveform_canvas = tk.Canvas(
             self.main_canvas, width=240, height=80, bg="#000000", highlightthickness=0
@@ -1114,10 +1114,13 @@ class JarvisHUD(tk.Tk):
                     fill="#00FFFF", font=("Consolas", 14, "bold"), tags="cinematic_labels"
                 )
                 return
-            alpha = max(0, 255 - step * 12)
-            self.sync_beam_canvas.itemconfig(
-                "sync_flash", fill=f"#{alpha:02x}{alpha:02x}{alpha:02x}"
-            )
+            # Fade from cyan (0,255,255) to black (0,0,0)
+            progress = step / 20.0
+            r = int(0)
+            g = int(255 * (1 - progress))
+            b = int(255 * (1 - progress))
+            color = f"#{r:02x}{g:02x}{b:02x}"
+            self.sync_beam_canvas.itemconfig("sync_flash", fill=color)
             self.after(40, lambda: fade_flash(step + 1))
 
         fade_flash()
