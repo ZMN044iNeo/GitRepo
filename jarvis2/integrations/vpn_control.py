@@ -1,5 +1,5 @@
 import subprocess
-from core.config import VPN_INTERFACE
+from jarvis2.core.config import VPN_INTERFACE
 
 
 def vpn_on() -> str:

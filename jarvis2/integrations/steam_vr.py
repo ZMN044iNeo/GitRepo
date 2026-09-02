@@ -1,5 +1,5 @@
 import subprocess
-from core.config import STEAM_PATH
+from jarvis2.core.config import STEAM_PATH
 
 
 def launch_steam() -> str:

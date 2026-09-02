@@ -3,7 +3,7 @@ import queue
 import threading
 import math
 import re
-import os
+import importlib
 
 import sounddevice as sd
 import numpy as np
@@ -15,9 +15,11 @@ from jarvis_sync_client_tk import JarvisSyncClientTK
 try:
     from jarvis2.core.router import JarvisRouter
     ROUTER_AVAILABLE = True
-except ImportError:
+    ROUTER_IMPORT_ERROR = ""
+except Exception as exc:
     ROUTER_AVAILABLE = False
     JarvisRouter = None
+    ROUTER_IMPORT_ERROR = str(exc)
 
 
 # Silence gate: frames with RMS below this value are skipped
@@ -62,33 +64,7 @@ class JarvisHUD(tk.Tk):
         # ============================
         # ROUTER (modular command system)
         # ============================
-        self.router = None
-        router_status = "Not initialized yet"
-        if ROUTER_AVAILABLE:
-            try:
-                self.router = JarvisRouter()
-                # Register all integrations
-                from jarvis2.integrations import (
-                    telegram_bot,
-                    elegoo_printer,
-                    browser_duckduckgo,
-                    vpn_control,
-                    steam_vr,
-                )
-                telegram_bot.register(self.router)
-                elegoo_printer.register(self.router)
-                browser_duckduckgo.register(self.router)
-                vpn_control.register(self.router)
-                steam_vr.register(self.router)
-                router_status = "Initialized with 5 integrations"
-            except Exception as e:
-                router_status = f"Init failed: {e} — local mode only"
-                self.router = None
-        else:
-            router_status = "jarvis2 module not found"
-        
-        # Store for later logging
-        self._router_init_status = router_status
+        self.router, self._router_tools, self._router_init_status = self._init_router()
 
         # ============================
         # SYNC CLIENT
@@ -183,6 +159,45 @@ class JarvisHUD(tk.Tk):
         self.cmd_entry.pack(fill="x", padx=10, pady=5)
         self.cmd_entry.bind("<Return>", lambda _e: self._on_cmd_enter())
         self.cmd_entry.focus_set()
+
+    def _init_router(self):
+        if not ROUTER_AVAILABLE:
+            reason = ROUTER_IMPORT_ERROR or "jarvis2 router import failed"
+            return None, [], f"offline ({reason})"
+
+        try:
+            router = JarvisRouter()
+        except Exception as exc:
+            return None, [], f"offline (router init failed: {exc})"
+
+        loaded = []
+        failed = []
+        integration_modules = [
+            "jarvis2.integrations.browser_duckduckgo",
+            "jarvis2.integrations.elegoo_printer",
+            "jarvis2.integrations.vpn_control",
+            "jarvis2.integrations.steam_vr",
+        ]
+
+        for module_name in integration_modules:
+            try:
+                mod = importlib.import_module(module_name)
+                register = getattr(mod, "register", None)
+                if callable(register):
+                    register(router)
+                    loaded.append(module_name.split(".")[-1])
+                else:
+                    failed.append(f"{module_name}: missing register()")
+            except Exception as exc:
+                failed.append(f"{module_name}: {exc}")
+
+        if loaded:
+            status = f"ready ({len(loaded)} integrations)"
+            if failed:
+                status += f", {len(failed)} failed"
+            return router, loaded, status
+
+        return None, [], "offline (no integrations loaded)"
 
     # ============================================================
     # LOCAL RESPONSE ENGINE  (no network required)
@@ -284,15 +299,17 @@ class JarvisHUD(tk.Tk):
             return "jarvis blueprint dj"
 
         # ---- network / integrations (if router available) ----
+        if t.startswith("search "):
+            return f"router:{t}"
         if "telegram" in t or "send message" in t:
-            return "router:telegram"
+            return "ask:Telegram control is available from jarvis2/main.py."
         if "vpn" in t:
             if "on" in t or "enable" in t:
                 return "router:vpn on"
             elif "off" in t or "disable" in t:
                 return "router:vpn off"
         if "printer" in t or "print" in t or "3d print" in t:
-            return "router:printer"
+            return "router:printer status"
         if "steam" in t or "game" in t or "vr" in t:
             return "router:steam"
         if "search" in t or "browse" in t or "web" in t:
@@ -346,7 +363,7 @@ class JarvisHUD(tk.Tk):
 
         if cmd == "jarvis status":
             voice_state = "active" if self.voice_running else "idle"
-            router_state = "ready" if self.router else "offline"
+            router_state = self._router_init_status
             self.log_chat(
                 "jarvis",
                 f"Status: {self.current_status} | Matrix: {self.matrix_mode} | Voice: {voice_state} | Router: {router_state}",

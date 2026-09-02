@@ -1,4 +1,4 @@
-from core.state import JarvisState
+from jarvis2.core.state import JarvisState
 
 
 class JarvisRouter:

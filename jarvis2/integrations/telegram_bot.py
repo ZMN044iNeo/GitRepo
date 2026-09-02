@@ -1,6 +1,6 @@
 from telegram.ext import ApplicationBuilder, CommandHandler
-from core.router import JarvisRouter
-from core.config import TELEGRAM_TOKEN
+from jarvis2.core.router import JarvisRouter
+from jarvis2.core.config import TELEGRAM_TOKEN
 
 
 def start_telegram_bot(jarvis: JarvisRouter):

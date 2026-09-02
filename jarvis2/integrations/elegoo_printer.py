@@ -1,5 +1,5 @@
 import requests
-from core.config import HA_URL, HA_TOKEN
+from jarvis2.core.config import HA_URL, HA_TOKEN
 
 
 def _headers():

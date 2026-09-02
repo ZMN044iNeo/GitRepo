@@ -84,7 +84,7 @@ def cinematic_ack(cmd: str) -> str:
     return "Command acknowledged."
 
 
-async def handle_client(websocket, path):
+async def handle_client(websocket, path=None):
     """Handle incoming client connections."""
     CLIENTS.add(websocket)
     client_id = id(websocket)

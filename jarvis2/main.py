@@ -1,14 +1,14 @@
 import threading
-from core.router import JarvisRouter
-from integrations import (
+from jarvis2.core.router import JarvisRouter
+from jarvis2.integrations import (
     elegoo_printer,
     browser_duckduckgo,
     vpn_control,
     steam_vr,
 )
-from integrations.matrix_ui import start_matrix_ui
-from integrations.telegram_bot import start_telegram_bot
-from old_jarvis.import_old import import_old_state
+from jarvis2.integrations.matrix_ui import start_matrix_ui
+from jarvis2.integrations.telegram_bot import start_telegram_bot
+from jarvis2.old_jarvis.import_old import import_old_state
 
 
 def main():

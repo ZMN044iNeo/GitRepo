@@ -8,8 +8,10 @@ import asyncio
 import json
 import websockets
 from datetime import datetime
-from threading import Thread
-import time
+
+SYNC_HOST = "localhost"
+SYNC_PORT = 8765
+SYNC_URI = f"ws://{SYNC_HOST}:{SYNC_PORT}"
 
 # Page config
 st.set_page_config(
@@ -46,8 +48,6 @@ st.markdown("""
 # ============================================================
 # SESSION STATE
 # ============================================================
-if "sync_ws" not in st.session_state:
-    st.session_state.sync_ws = None
 if "connected" not in st.session_state:
     st.session_state.connected = False
 if "matrix_mode" not in st.session_state:
@@ -62,39 +62,47 @@ if "blueprint_active" not in st.session_state:
     st.session_state.blueprint_active = False
 if "daemon_alert" not in st.session_state:
     st.session_state.daemon_alert = ""
+if "auto_refresh" not in st.session_state:
+    st.session_state.auto_refresh = True
 
 
 # ============================================================
 # SYNC CLIENT
 # ============================================================
-async def connect_sync_server(host="localhost", port=8765):
-    """Connect to JARVIS sync server."""
+async def ws_request(packet: dict, timeout: float = 2.0):
+    """Open a short-lived websocket connection and request data."""
     try:
-        uri = f"ws://{host}:{port}"
-        ws = await websockets.connect(uri)
-        st.session_state.connected = True
-        st.info(f"✅ Connected to sync server at {uri}")
-        return ws
+        async with websockets.connect(SYNC_URI) as ws:
+            await ws.send(json.dumps(packet))
+            response = await asyncio.wait_for(ws.recv(), timeout=timeout)
+            return json.loads(response)
     except Exception as e:
-        st.error(f"❌ Connection failed: {e}")
-        st.session_state.connected = False
-        return None
+        return {"type": "error", "error": str(e)}
 
 
-async def receive_sync_events():
-    """Listen for events from sync server."""
-    if not st.session_state.connected:
-        return
-    
-    try:
-        async for message in st.session_state.sync_ws:
-            packet = json.loads(message)
-            process_sync_packet(packet)
-    except asyncio.CancelledError:
-        pass
-    except Exception as e:
-        st.error(f"Sync error: {e}")
+def sync_state_once(show_errors: bool = False):
+    packet = asyncio.run(ws_request({"type": "state_request"}))
+    if packet.get("type") == "error":
         st.session_state.connected = False
+        if show_errors:
+            st.error(f"Sync error: {packet.get('error')}" )
+        return False
+    process_sync_packet(packet)
+    st.session_state.connected = True
+    return True
+
+
+def send_sync_packet(packet: dict, show_errors: bool = True):
+    result = asyncio.run(ws_request(packet))
+    if result.get("type") == "error":
+        st.session_state.connected = False
+        if show_errors:
+            st.error(f"Send failed: {result.get('error')}" )
+        return False
+    st.session_state.connected = True
+    if result.get("type") == "state_sync":
+        process_sync_packet(result)
+    return True
 
 
 def process_sync_packet(packet: dict):
@@ -128,6 +136,11 @@ def process_sync_packet(packet: dict):
 st.title("[ 🤖 JARVIS V4.0 HOLOGRAM ]")
 st.markdown("Real-time system telemetry and command interface")
 
+if st.session_state.auto_refresh and hasattr(st, "autorefresh"):
+    st.autorefresh(interval=2000, key="jarvis_auto_refresh")
+if st.session_state.auto_refresh:
+    sync_state_once(show_errors=False)
+
 # Sidebar: Connection & Settings
 with st.sidebar:
     st.header("⚙️ System Control")
@@ -138,29 +151,34 @@ with st.sidebar:
     
     # Server Connection
     if st.button("🔗 Connect to Sync Server"):
-        ws = asyncio.run(connect_sync_server())
-        st.session_state.sync_ws = ws
-        if ws:
-            # Start listening in background (this is simplified for Streamlit)
-            st.success("Connected! Sync server ready.")
+        if sync_state_once(show_errors=True):
+            st.success(f"Connected to sync server at {SYNC_URI}")
     
     if st.button("🔌 Disconnect"):
-        if st.session_state.sync_ws:
-            asyncio.run(st.session_state.sync_ws.close())
         st.session_state.connected = False
         st.warning("Disconnected from sync server.")
+
+    st.session_state.auto_refresh = st.checkbox(
+        "Auto refresh telemetry", value=st.session_state.auto_refresh
+    )
+    if st.button("🔄 Refresh Now"):
+        sync_state_once(show_errors=True)
     
     st.divider()
     
     # Quick Commands
     st.subheader("Quick Commands")
     if st.button("🟪 Quantum Mode"):
+        send_sync_packet({"type": "matrix_mode", "value": "QUANTUM"})
         st.session_state.matrix_mode = "QUANTUM"
     if st.button("🟩 Stealth Mode"):
+        send_sync_packet({"type": "matrix_mode", "value": "STEALTH"})
         st.session_state.matrix_mode = "STEALTH"
     if st.button("🟥 Overclock Mode"):
+        send_sync_packet({"type": "matrix_mode", "value": "OVERCLOCK"})
         st.session_state.matrix_mode = "OVERCLOCK"
     if st.button("🔵 Default Mode"):
+        send_sync_packet({"type": "matrix_mode", "value": "DEFAULT"})
         st.session_state.matrix_mode = "DEFAULT"
 
 
@@ -233,6 +251,7 @@ with tab2:
     for cmd in test_commands:
         if st.button(f"→ {cmd}"):
             st.session_state.last_voice = cmd
+            send_sync_packet({"type": "voice_event", "value": cmd}, show_errors=False)
             st.success(f"Command: {cmd}")
 
 # TAB 3: Daemon Alerts
@@ -246,8 +265,10 @@ with tab3:
     # Daemon Actions
     if st.button("▶️ Pulse Daemon"):
         st.session_state.daemon_alert = "Daemon pulse initiated"
+        send_sync_packet({"type": "daemon_alert", "value": st.session_state.daemon_alert}, show_errors=False)
     if st.button("⏹️ Calm Daemon"):
         st.session_state.daemon_alert = ""
+        send_sync_packet({"type": "daemon_alert", "value": ""}, show_errors=False)
 
 # TAB 4: Tools & Integrations
 with tab4:
