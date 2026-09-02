@@ -28,20 +28,25 @@ if (-not $desktop) {
 
 $shortcutPath = Join-Path $desktop "Jarvis.lnk"
 $legacyShortcutPath = Join-Path $desktop "JARVIS HUD V4.0.lnk"
-$launcherPath = Join-Path $PSScriptRoot "launch_jarvis_unified.ps1"
+$hudPath = Join-Path $PSScriptRoot "jarvis_hud.py"
+$pythonPath = "C:\Users\pharo\AppData\Local\Programs\Python\Python312\python.exe"
 
-if (-not (Test-Path -LiteralPath $launcherPath)) {
-    throw "Jarvis launcher was not found: $launcherPath"
+if (-not (Test-Path -LiteralPath $hudPath)) {
+    throw "Jarvis HUD was not found: $hudPath"
+}
+
+if (-not (Test-Path -LiteralPath $pythonPath)) {
+    $pythonPath = (Get-Command python -ErrorAction Stop).Source
 }
 
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-$shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$launcherPath`""
+$shortcut.TargetPath = $pythonPath
+$shortcut.Arguments = "`"$hudPath`""
 $shortcut.WorkingDirectory = $PSScriptRoot
 $shortcut.WindowStyle = 1
-$shortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,220"
-$shortcut.Description = "Launch JARVIS HUD V4.0 with the native control surface"
+$shortcut.IconLocation = "$pythonPath,0"
+$shortcut.Description = "Launch JARVIS HUD V4.0 and native control surface"
 $shortcut.Save()
 
 if ($legacyShortcutPath -ne $shortcutPath -and (Test-Path -LiteralPath $legacyShortcutPath)) {
