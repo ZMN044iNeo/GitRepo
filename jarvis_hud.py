@@ -219,6 +219,14 @@ class JarvisHUD(tk.Tk):
             cx + 30 + int(level * 30), cy + 30 + int(level * 30),
             outline="#b7f7ff", width=3, tags="voice_reactive"
         )
+        # Unified voice-reactive animation suite
+        self.animate_matrix_adaptive()
+        self.animate_particles()
+        self.animate_waveform()
+        self.animate_blueprint_scan()
+        self.animate_daemon_pulse()
+        self.animate_grid_pulse()
+        self.animate_premium()
         self.after(60, self._voice_reactivity)
 
     # ============================================================
@@ -1313,6 +1321,100 @@ class JarvisHUD(tk.Tk):
             return
         # Placeholder: premium animation rendering
         pass
+
+    # ============================================================
+    # FULL ADAPTIVE MATRIX ENGINE (Unified Replacement)
+    # ============================================================
+    def animate_matrix_adaptive(self):
+        """Unified adaptive matrix animation driven by waveform amplitude."""
+        # Audio level drives EVERYTHING
+        level = min(max(self.audio_level, 0.0), 1.0)
+
+        # Clear previous frame
+        self.main_canvas.delete("matrix_adaptive")
+
+        cx, cy = 640, 150
+
+        # ============================================================
+        # 1. Concentric Rings (reactive pulse)
+        # ============================================================
+        base_radius = 40 + int(level * 80)
+        for i in range(8):
+            r = base_radius + (i * 22)
+            color = f"#{int(120 + level*135):02x}00ff"
+            self.main_canvas.create_oval(
+                cx - r, cy - r, cx + r, cy + r,
+                outline=color,
+                width=2,
+                tags="matrix_adaptive"
+            )
+
+        # ============================================================
+        # 2. Particle Field (orbiting dots)
+        # ============================================================
+        particle_count = 80
+        for i in range(particle_count):
+            angle = (self.waveform_phase / 10.0) + (i * 0.08)
+            radius = base_radius + 140 + int(level * 50)
+            px = cx + radius * math.cos(angle)
+            py = cy + radius * math.sin(angle)
+            self.main_canvas.create_oval(
+                px - 3, py - 3, px + 3, py + 3,
+                fill="#aa00ff",
+                outline="",
+                tags="matrix_adaptive"
+            )
+
+        # ============================================================
+        # 3. Vertical Bars (audio spectrum)
+        # ============================================================
+        bar_x = 240
+        bar_y = 40
+        bar_width = 12
+        bar_spacing = 8
+        bar_count = 24
+
+        for i in range(bar_count):
+            height = 20 + int(level * 160) + int(math.sin(self.waveform_phase/8 + i)*50)
+            x1 = bar_x + i * (bar_width + bar_spacing)
+            y1 = bar_y + (200 - height)
+            x2 = x1 + bar_width
+            y2 = bar_y + 200
+
+            color = f"#{int(50 + level*205):02x}{int(100 + level*155):02x}ff"
+            self.main_canvas.create_rectangle(
+                x1, y1, x2, y2,
+                fill=color,
+                outline="",
+                tags="matrix_adaptive"
+            )
+
+        # ============================================================
+        # 4. Central Pulse (heartbeat)
+        # ============================================================
+        pulse = 20 + int(level * 60)
+        self.main_canvas.create_oval(
+            cx - pulse, cy - pulse, cx + pulse, cy + pulse,
+            outline="#ff00ff",
+            width=3,
+            tags="matrix_adaptive"
+        )
+
+        # ============================================================
+        # 5. Matrix Grid Distortion (optional)
+        # ============================================================
+        for x in range(0, 1280, 80):
+            offset = int(math.sin(self.waveform_phase/15 + x/100) * 10 * level)
+            self.main_canvas.create_line(
+                x, 0 + offset,
+                x, 300 - offset,
+                fill="#220033",
+                width=1,
+                tags="matrix_adaptive"
+            )
+
+        # Increment phase
+        self.waveform_phase += 1
 
     # ============================================================
     # COMBINED MODE — RUN ALL FEATURES TOGETHER
