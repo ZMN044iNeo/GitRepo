@@ -209,19 +209,16 @@ class JarvisHUD(tk.Tk):
             self.main_canvas, width=540, height=238, bg="#02070d", highlightthickness=0
         )
         self.blueprint_canvas.place(x=200, y=42)
-        self.blueprint_canvas.lower()
 
         self.core_canvas = tk.Canvas(
             self.main_canvas, width=360, height=220, bg="#02070d", highlightthickness=0
         )
         self.core_canvas.place(x=290, y=46)
-        self.core_canvas.tkraise()
 
         self.particle_canvas = tk.Canvas(
             self.main_canvas, width=260, height=200, bg="#02070d", highlightthickness=0
         )
         self.particle_canvas.place(x=340, y=52)
-        self.particle_canvas.lower()
 
         self.waveform_canvas = tk.Canvas(
             self, width=900, height=90, bg="#02070d", highlightthickness=0
