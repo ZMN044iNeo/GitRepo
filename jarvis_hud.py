@@ -207,17 +207,17 @@ class JarvisHUD(tk.Tk):
         self.blueprint_canvas = tk.Canvas(
             self.main_canvas, width=540, height=238, bg="#02070d", highlightthickness=0
         )
-        self.blueprint_canvas.place(x=188, y=42)
+        self.blueprint_canvas.place(x=200, y=42)
 
         self.core_canvas = tk.Canvas(
             self.main_canvas, width=360, height=220, bg="#02070d", highlightthickness=0
         )
-        self.core_canvas.place(x=357, y=46)
+        self.core_canvas.place(x=290, y=46)
 
         self.particle_canvas = tk.Canvas(
             self.main_canvas, width=260, height=200, bg="#02070d", highlightthickness=0
         )
-        self.particle_canvas.place(x=307, y=52)
+        self.particle_canvas.place(x=340, y=52)
 
         self.waveform_canvas = tk.Canvas(
             self, width=900, height=90, bg="#02070d", highlightthickness=0
@@ -227,7 +227,7 @@ class JarvisHUD(tk.Tk):
         self.sync_beam_canvas = tk.Canvas(
             self.main_canvas, width=527, height=44, bg="#02070d", highlightthickness=0
         )
-        self.sync_beam_canvas.place(x=213, y=12)
+        self.sync_beam_canvas.place(x=206, y=12)
 
         # ---- chat & console (read-only Text widgets) ----
         self.chat_box = tk.Text(
@@ -1017,20 +1017,65 @@ class JarvisHUD(tk.Tk):
     # ARC REACTOR INTRO
     # ============================================================
     def cinematic_arc_reactor(self):
-        # centered on main_canvas, not sync_beam_canvas
-        cx, cy, base_r = 470, 150, 20
+        # centered on main_canvas
+        cx, cy, base_r = 470, 150, 30
 
         def pulse(step=0):
             self.main_canvas.delete("arc_reactor")
             r = base_r + step
+            
+            # Expanding rings
             self.main_canvas.create_oval(
                 cx - r, cy - r, cx + r, cy + r,
                 outline="#00FFFF", width=3, tags="arc_reactor",
             )
-            if step < 60:
+            
+            # Add inner core glow
+            if r > 20:
+                self.main_canvas.create_oval(
+                    cx - (r * 0.4), cy - (r * 0.4), cx + (r * 0.4), cy + (r * 0.4),
+                    outline="#00FFFF", width=1, tags="arc_reactor",
+                )
+            
+            if step < 100:
                 self.after(20, lambda: pulse(step + 2))
             else:
+                # Final frame: expand to full size with border and labels
                 self.main_canvas.delete("arc_reactor")
+                
+                # Outer border rectangle
+                border_size = 180
+                self.main_canvas.create_rectangle(
+                    cx - border_size, cy - border_size,
+                    cx + border_size, cy + border_size,
+                    outline="#00FFFF", width=2, tags="arc_reactor"
+                )
+                
+                # Final reactor rings
+                for ring_r in (40, 75, 110):
+                    self.main_canvas.create_oval(
+                        cx - ring_r, cy - ring_r, cx + ring_r, cy + ring_r,
+                        outline="#00FFFF", width=2, tags="arc_reactor",
+                    )
+                
+                # Center point
+                self.main_canvas.create_oval(
+                    cx - 6, cy - 6, cx + 6, cy + 6,
+                    fill="#00FFFF", outline="", tags="arc_reactor"
+                )
+                
+                # Labels
+                self.main_canvas.create_text(
+                    cx, cy - 165,
+                    text="JARVIS",
+                    fill="#00FFFF", font=("Consolas", 14, "bold"), tags="arc_reactor"
+                )
+                self.main_canvas.create_text(
+                    cx, cy + 165,
+                    text="CORE",
+                    fill="#00FFFF", font=("Consolas", 14, "bold"), tags="arc_reactor"
+                )
+                
                 self.cinematic_grid()
 
         pulse()
@@ -1097,7 +1142,7 @@ class JarvisHUD(tk.Tk):
             return
 
         self.core_canvas.delete("all")
-        cx, cy = 160, 100
+        cx, cy = 180, 100
         color = {
             "QUANTUM": "#cc55ff",
             "STEALTH": "#809199",
@@ -1105,6 +1150,14 @@ class JarvisHUD(tk.Tk):
         }.get(self.matrix_mode, "#00e5ff")
         phase = self.core_phase / 12.0
         pulse = 10 + int(4 * math.sin(phase * 1.5))
+
+        # Outer border rectangle
+        border_offset = 90
+        self.core_canvas.create_rectangle(
+            cx - border_offset, cy - border_offset,
+            cx + border_offset, cy + border_offset,
+            outline=color, width=2
+        )
 
         for radius, start, extent in ((74, 20, 135), (58, 190, 115), (42, 70, 150)):
             offset = (self.core_phase * (1 if radius != 58 else -1)) % 360
@@ -1160,64 +1213,77 @@ class JarvisHUD(tk.Tk):
         pulse = 0.5 + (math.sin(self.particle_phase / 12.0) + 1) / 2
         self.premium_phase += 1
 
-        for x in range(0, 940, 42):
+        for x in range(0, 940, 40):
             self.main_canvas.create_line(
                 x, 0, x, 300,
-                fill="#0b1320" if pulse < 0.7 else "#16364d",
+                fill="#1a3a52" if pulse < 0.7 else "#2a5a7f",
                 width=1,
-                tags="grid_overlay",
-                stipple="gray50" if pulse < 0.7 else ""
+                tags="grid_overlay"
             )
-        for y in range(0, 300, 42):
+        for y in range(0, 300, 40):
             self.main_canvas.create_line(
                 0, y, 940, y,
-                fill="#0b1320" if pulse < 0.7 else "#16364d",
+                fill="#1a3a52" if pulse < 0.7 else "#2a5a7f",
                 width=1,
-                tags="grid_overlay",
-                stipple="gray50" if pulse < 0.7 else ""
+                tags="grid_overlay"
             )
 
-        # Arc reactor sits above the dim grid and below the particle overlay.
-        for ring in (46, 78, 110, 144):
-            r = ring + 10 * math.sin(self.premium_phase / 18.0)
+        # Arc reactor rings with enhanced visuals
+        for ring in (50, 85, 120):
+            r = ring + 8 * math.sin(self.premium_phase / 15.0)
             self.main_canvas.create_oval(
                 cx - r, cy - r, cx + r, cy + r,
-                outline=color, width=2, tags="arc_reactor", stipple="gray50"
+                outline=color, width=2, tags="arc_reactor"
             )
 
-        # Particle burst sits on top as the active foreground layer.
-        for i in range(24):
-            angle = (self.particle_phase / 18.0) + (i / 5.0)
-            radius = 160 + 30 * math.sin(i / 2.0 + self.particle_phase / 30.0)
+        # Dense particle burst - more particles for premium look
+        for i in range(48):
+            angle = (self.particle_phase / 16.0) + (i / 7.0)
+            radius = 140 + 45 * math.sin(i / 3.0 + self.particle_phase / 25.0)
             x = cx + radius * math.cos(angle)
-            y = cy + radius * math.sin(angle * 1.15)
+            y = cy + radius * math.sin(angle * 1.2)
+            size = 2.0 + 0.8 * math.sin(self.particle_phase / 20.0 + i)
             self.main_canvas.create_oval(
-                x - 1.8, y - 1.8, x + 1.8, y + 1.8,
+                x - size, y - size, x + size, y + size,
                 fill=color, outline="", tags="matrix_overlay"
             )
 
+        # Outer reactor border
+        border_r = 130 + 5 * pulse
+        self.main_canvas.create_rectangle(
+            cx - border_r, cy - border_r, cx + border_r, cy + border_r,
+            outline=color, width=2, tags="arc_reactor"
+        )
+
         self.main_canvas.create_oval(
-            cx - 22 - 2 * pulse, cy - 22 - 2 * pulse,
-            cx + 22 + 2 * pulse, cy + 22 + 2 * pulse,
+            cx - 24 - 3 * pulse, cy - 24 - 3 * pulse,
+            cx + 24 + 3 * pulse, cy + 24 + 3 * pulse,
             outline=color, width=2, tags="matrix_overlay"
         )
 
         self.main_canvas.create_text(
-            cx - 10, cy + 100,
-            text="BLUEPRINT // EDITOR",
-            fill="#7cf9ff",
+            cx, cy + 115,
+            text="QUANTUM MATRIX // ACTIVE",
+            fill=color,
             font=("Consolas", 9, "bold"),
             tags="matrix_overlay"
         )
 
         self.waveform_canvas.delete("all")
         w, h = 876, 90
-        active_level = 0.2 + self.audio_level * 0.4
-        for x in range(0, w, 4):
-            phase = (self.particle_phase / 8.0) + (x / 18.0)
-            amp = 6 + (16 * active_level) * math.sin(phase)
+        active_level = 0.3 + self.audio_level * 0.5
+        for x in range(0, w, 6):
+            phase = (self.particle_phase / 7.0) + (x / 16.0)
+            amp = 8 + (24 * active_level) * math.sin(phase)
             y = h / 2 + amp
-            self.waveform_canvas.create_line(x, h / 2, x, y, fill="#00d9ff", width=2)
+            self.waveform_canvas.create_rectangle(
+                x, h / 2, x + 4, y,
+                fill="#00d9ff", outline=""
+            )
+            self.waveform_canvas.create_rectangle(
+                x, h / 2, x + 4, h / 2 - amp,
+                fill="#00d9ff", outline=""
+            )
 
         self.particle_phase += 1
         self.after(40, self.animate_particles)
@@ -1274,11 +1340,18 @@ class JarvisHUD(tk.Tk):
             return
         self.waveform_canvas.delete("all")
         w, h = 876, 80
-        for x in range(0, w, 4):
-            phase = (self.waveform_phase / 5.0) + (x / 20.0)
-            amplitude = 8 + (32 * self.audio_level)
+        for x in range(0, w, 6):
+            phase = (self.waveform_phase / 5.0) + (x / 16.0)
+            amplitude = 12 + (28 * self.audio_level)
             y = h / 2 + amplitude * math.sin(phase)
-            self.waveform_canvas.create_line(x, h / 2, x, y, fill="#00FFAA")
+            self.waveform_canvas.create_rectangle(
+                x, h / 2, x + 4, y,
+                fill="#00FFAA", outline=""
+            )
+            self.waveform_canvas.create_rectangle(
+                x, h / 2, x + 4, h / 2 - abs(y - h / 2),
+                fill="#00FFAA", outline=""
+            )
         self.waveform_phase += 1
         self.after(40, self.animate_waveform)
 
