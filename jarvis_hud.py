@@ -358,7 +358,7 @@ class JarvisHUD(tk.Tk):
             self.control_panel.tkraise()
             self.control_panel.focus_set()
 
-    def toggle_fullscreen(self):
+    def toggle_fullscreen(self, event=None):
         try:
             self.fullscreen_mode = not self.fullscreen_mode
             if self.fullscreen_mode:
@@ -375,7 +375,7 @@ class JarvisHUD(tk.Tk):
             except Exception:
                 self.geometry("1280x720")
 
-    def exit_fullscreen(self):
+    def exit_fullscreen(self, event=None):
         if self.fullscreen_mode:
             self.toggle_fullscreen()
 
