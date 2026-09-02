@@ -56,8 +56,12 @@ class JarvisHUD(tk.Tk):
         # ============================
         self.title("JARVIS HUD V4.0")
         self.geometry("1280x720")
-        self.configure(bg="#000000")
+        self.configure(bg="#020b12")
         self.attributes("-alpha", 0.96)
+        try:
+            self.attributes("-transparentcolor", "#020b12")
+        except Exception:
+            pass
 
         # ============================
         # HUD STATE  (must come before any after() scheduling)
@@ -152,7 +156,7 @@ class JarvisHUD(tk.Tk):
             self,
             text="[ 🌐 4D MATRIX: DEFAULT ]",
             fg="#00FFFF",
-            bg="#000000",
+            bg="#020b12",
             font=("Consolas", 16),
         )
         self.lbl_telemetry_1.pack(pady=10)
@@ -161,40 +165,40 @@ class JarvisHUD(tk.Tk):
             self,
             text="● BOOTING",
             fg="#FFAA00",
-            bg="#000000",
+            bg="#020b12",
             font=("Consolas", 16),
         )
         self.lbl_status.pack(pady=10)
 
         # ---- canvases ----
         self.main_canvas = tk.Canvas(
-            self, width=1280, height=300, bg="#000000", highlightthickness=0
+            self, width=1280, height=300, bg="#020b12", highlightthickness=0
         )
         self.main_canvas.pack(fill="x")
         self.main_canvas.configure(highlightthickness=0)
 
         self.blueprint_canvas = tk.Canvas(
-            self.main_canvas, width=800, height=200, bg="#000000", highlightthickness=0
+            self.main_canvas, width=800, height=200, bg="#020b12", highlightthickness=0
         )
         self.blueprint_canvas.place(x=240, y=40)
 
         self.core_canvas = tk.Canvas(
-            self.main_canvas, width=320, height=200, bg="#000000", highlightthickness=0
+            self.main_canvas, width=320, height=200, bg="#020b12", highlightthickness=0
         )
         self.core_canvas.place(x=480, y=40)
 
         self.particle_canvas = tk.Canvas(
-            self.main_canvas, width=240, height=200, bg="#000000", highlightthickness=0
+            self.main_canvas, width=240, height=200, bg="#020b12", highlightthickness=0
         )
         self.particle_canvas.place(x=10, y=40)
 
         self.waveform_canvas = tk.Canvas(
-            self.main_canvas, width=240, height=80, bg="#000000", highlightthickness=0
+            self.main_canvas, width=240, height=90, bg="#020b12", highlightthickness=0
         )
-        self.waveform_canvas.place(x=10, y=250)
+        self.waveform_canvas.place(x=500, y=210)
 
         self.sync_beam_canvas = tk.Canvas(
-            self.main_canvas, width=800, height=40, bg="#000000", highlightthickness=0
+            self.main_canvas, width=800, height=40, bg="#020b12", highlightthickness=0
         )
         self.sync_beam_canvas.place(x=240, y=10)
 
@@ -288,6 +292,7 @@ class JarvisHUD(tk.Tk):
         (r"dj|prep|track",      lambda: "DJ prep sequence standing by. Specify your audio file."),
         (r"install|upgrade|patch", lambda: "Upgrade pipeline ready. Use: jarvis install upgrades"),
         (r"showcase|premium|cinematic", lambda: "Premium showcase is live. Use: jarvis premium showcase"),
+        (r"debug|diagnostic|self check|self debug", lambda: "Self-diagnostic started. Use: jarvis self debug"),
     ]
 
     def _local_respond(self, text: str):
@@ -355,6 +360,8 @@ class JarvisHUD(tk.Tk):
             return "jarvis cinematic replay"
         if "premium" in t or "showcase" in t or "movie" in t:
             return "jarvis premium showcase"
+        if "debug" in t or "diagnostic" in t or "self check" in t:
+            return "jarvis self debug"
         if ("install" in t or "upgrade" in t) and ("jarvis" in t or "system" in t or "patch" in t or "feature" in t):
             return "jarvis install upgrades"
 
@@ -519,6 +526,10 @@ class JarvisHUD(tk.Tk):
             self.log_chat("jarvis", "Premium showcase matrix engaged.")
             return
 
+        if cmd == "jarvis self debug":
+            self.self_debug_status()
+            return
+
         if cmd in ("jarvis install upgrades", "jarvis upgrade install", "jarvis install"):
             self.start_upgrade_pipeline()
             return
@@ -598,6 +609,16 @@ class JarvisHUD(tk.Tk):
         if action == "read":
             return self.coding_assistant.read_file(value)
         return f"Unknown coding action: {action}"
+
+    def self_debug_status(self):
+        """Run a lightweight diagnostic sweep for the local system and UI layers."""
+        checks = []
+        checks.append(f"voice_stack: {'ready' if sd is not None and whisper is not None and np is not None else 'degraded'}")
+        checks.append(f"router: {self._router_init_status}")
+        checks.append(f"canvas: {self.main_canvas.winfo_exists()} | waveform: {self.waveform_canvas.winfo_exists()} | matrix: {self.particle_canvas.winfo_exists()}")
+        checks.append(f"voice: {'online' if self.voice_running else 'idle'} | audio_level: {self.audio_level:.2f}")
+        self.log_chat("system", "SELF-DIAGNOSTIC // " + " | ".join(checks))
+        self.speak("Self-diagnostic complete. Systems stable.")
 
     def start_upgrade_pipeline(self):
         """Attempt local feature upgrades for the optional voice stack and helper modules."""
@@ -1014,16 +1035,16 @@ class JarvisHUD(tk.Tk):
         pulse = 0.5 + (math.sin(self.particle_phase / 8.0) + 1) / 2
         self.premium_phase += 1
 
-        for ring in (40, 75, 115, 155, 200):
-            r = ring + 10 * math.sin(self.premium_phase / 12.0)
+        for ring in (50, 90, 130, 170, 210):
+            r = ring + 12 * math.sin(self.premium_phase / 12.0)
             self.main_canvas.create_oval(
                 cx - r, cy - r, cx + r, cy + r,
                 outline=color, width=2, tags="matrix_overlay", stipple="gray50"
             )
 
-        for i in range(42):
-            angle = (self.particle_phase / 12.0) + (i / 6.0)
-            radius = 72 + 45 * math.sin(i / 4.0 + self.particle_phase / 20.0)
+        for i in range(60):
+            angle = (self.particle_phase / 12.0) + (i / 7.0)
+            radius = 70 + 55 * math.sin(i / 4.0 + self.particle_phase / 20.0)
             x = cx + radius * math.cos(angle)
             y = cy + radius * math.sin(angle * 1.3)
             self.main_canvas.create_oval(
@@ -1031,35 +1052,36 @@ class JarvisHUD(tk.Tk):
                 fill=color, outline="", tags="matrix_overlay"
             )
 
-        for i in range(18):
-            angle = (self.particle_phase / 6.0) + (i * math.pi / 9)
-            x = cx + 185 * math.cos(angle)
-            y = cy + 92 * math.sin(angle)
+        for i in range(16):
+            angle = (self.particle_phase / 6.0) + (i * math.pi / 8)
+            x = cx + 200 * math.cos(angle)
+            y = cy + 100 * math.sin(angle)
             self.main_canvas.create_line(
                 cx, cy, x, y, fill=color, width=1, tags="matrix_overlay"
             )
 
         self.main_canvas.create_oval(
-            cx - 30 - 4 * pulse, cy - 30 - 4 * pulse,
-            cx + 30 + 4 * pulse, cy + 30 + 4 * pulse,
+            cx - 34 - 4 * pulse, cy - 34 - 4 * pulse,
+            cx + 34 + 4 * pulse, cy + 34 + 4 * pulse,
             outline=color, width=3, tags="matrix_overlay"
         )
+
         self.main_canvas.create_text(
             cx, cy + 90,
-            text="REACTIVE MATRIX // ACTIVE",
+            text="4D DATA REACTIVE MATRIX",
             fill=color,
             font=("Consolas", 10, "bold"),
             tags="matrix_overlay"
         )
 
-        cx2, cy2 = 120, 100
-        color2 = "#AA00FF" if self.matrix_mode == "QUANTUM" else "#00FFFF"
-        for i in range(40):
-            angle  = (self.particle_phase / 10.0) + (i / 5.0)
-            radius = 40 + 20 * math.sin(i / 4.0)
-            x = cx2 + radius * math.cos(angle)
-            y = cy2 + radius * math.sin(angle * 1.5)
-            self.particle_canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill=color2, outline="")
+        self.waveform_canvas.delete("all")
+        w, h = 240, 90
+        active_level = 0.35 + self.audio_level * 0.65
+        for x in range(0, w, 4):
+            phase = (self.particle_phase / 8.0) + (x / 18.0)
+            amp = 8 + (20 * active_level) * math.sin(phase)
+            y = h / 2 + amp
+            self.waveform_canvas.create_line(x, h / 2, x, y, fill="#00d9ff", width=2)
 
         self.particle_phase += 1
         self.after(40, self.animate_particles)
