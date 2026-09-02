@@ -205,9 +205,10 @@ class JarvisHUD(tk.Tk):
         self.main_canvas.configure(highlightthickness=0)
 
         self.blueprint_canvas = tk.Canvas(
-            self.main_canvas, width=860, height=238, bg="#040b12", highlightthickness=0
+            self.main_canvas, width=860, height=238, bg="#02070d", highlightthickness=0
         )
         self.blueprint_canvas.place(x=300, y=42)
+        self.blueprint_canvas.lower()
 
         self.core_canvas = tk.Canvas(
             self.main_canvas, width=360, height=220, bg="#02070d", highlightthickness=0
@@ -1009,22 +1010,9 @@ class JarvisHUD(tk.Tk):
         self.after(1500, lambda: self.update_status("ONLINE"))
 
     def cinematic_view(self):
-        self.main_canvas.create_rectangle(
-            0, 0, 1280, 300, fill="#000000", outline="", tags="cinematic_overlay"
-        )
-
-        def fade(step=0):
-            if step > 25:
-                self.main_canvas.delete("cinematic_overlay")
-                self.cinematic_arc_reactor()
-                return
-            alpha = max(0, 255 - step * 10)
-            self.main_canvas.itemconfig(
-                "cinematic_overlay", fill=f"#{alpha:02x}{alpha:02x}{alpha:02x}"
-            )
-            self.after(40, lambda: fade(step + 1))
-
-        fade()
+        # Do not create a solid black block that covers the reactor.
+        self.main_canvas.delete("cinematic_overlay")
+        self.cinematic_arc_reactor()
 
     # ============================================================
     # ARC REACTOR INTRO
