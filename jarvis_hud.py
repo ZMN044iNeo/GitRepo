@@ -199,33 +199,33 @@ class JarvisHUD(tk.Tk):
 
         # ---- canvases ----
         self.main_canvas = tk.Canvas(
-            self, width=1500, height=360, bg="#020b12", highlightthickness=0
+            self, width=1500, height=360, bg="#02070d", highlightthickness=0
         )
         self.main_canvas.pack(fill="x", padx=0, pady=0)
         self.main_canvas.configure(highlightthickness=0)
 
         self.blueprint_canvas = tk.Canvas(
-            self.main_canvas, width=860, height=220, bg="#020b12", highlightthickness=0
+            self.main_canvas, width=860, height=238, bg="#040b12", highlightthickness=0
         )
-        self.blueprint_canvas.place(x=300, y=48)
+        self.blueprint_canvas.place(x=300, y=42)
 
         self.core_canvas = tk.Canvas(
-            self.main_canvas, width=360, height=220, bg="#020b12", highlightthickness=0
+            self.main_canvas, width=360, height=220, bg="#02070d", highlightthickness=0
         )
         self.core_canvas.place(x=570, y=46)
 
         self.particle_canvas = tk.Canvas(
-            self.main_canvas, width=260, height=200, bg="#020b12", highlightthickness=0
+            self.main_canvas, width=260, height=200, bg="#02070d", highlightthickness=0
         )
         self.particle_canvas.place(x=490, y=52)
 
         self.waveform_canvas = tk.Canvas(
-            self.main_canvas, width=380, height=90, bg="#020b12", highlightthickness=0
+            self.main_canvas, width=380, height=90, bg="#02070d", highlightthickness=0
         )
-        self.waveform_canvas.place(x=540, y=240)
+        self.waveform_canvas.place(x=540, y=238)
 
         self.sync_beam_canvas = tk.Canvas(
-            self.main_canvas, width=840, height=44, bg="#020b12", highlightthickness=0
+            self.main_canvas, width=840, height=44, bg="#02070d", highlightthickness=0
         )
         self.sync_beam_canvas.place(x=340, y=12)
 
@@ -1055,9 +1055,9 @@ class JarvisHUD(tk.Tk):
         self.main_canvas.delete("cinematic_grid")
         self.grid_pulse_phase = 0
         for x in range(0, 1280, 40):
-            self.main_canvas.create_line(x, 0, x, 300, fill="#0a1a2a", width=1, tags="cinematic_grid")
+            self.main_canvas.create_line(x, 0, x, 300, fill="#0b1520", width=1, tags="cinematic_grid")
         for y in range(0, 300, 40):
-            self.main_canvas.create_line(0, y, 1280, y, fill="#0a1a2a", width=1, tags="cinematic_grid")
+            self.main_canvas.create_line(0, y, 1280, y, fill="#0b1520", width=1, tags="cinematic_grid")
 
         self.sync_beam_canvas.create_rectangle(
             0, 0, 800, 40, fill="#00FFFF", outline="", tags="sync_flash"
@@ -1165,56 +1165,49 @@ class JarvisHUD(tk.Tk):
         self.main_canvas.delete("matrix_overlay")
         self.particle_canvas.delete("all")
 
+        # Keep the reactive matrix subtle and behind the engineering view.
         cx, cy = 640, 150
         color = "#cc66ff" if self.matrix_mode == "QUANTUM" else "#00e5ff"
-        pulse = 0.5 + (math.sin(self.particle_phase / 8.0) + 1) / 2
+        pulse = 0.5 + (math.sin(self.particle_phase / 12.0) + 1) / 2
         self.premium_phase += 1
 
-        for ring in (50, 90, 130, 170, 210):
-            r = ring + 12 * math.sin(self.premium_phase / 12.0)
+        for ring in (46, 78, 110, 144):
+            r = ring + 10 * math.sin(self.premium_phase / 18.0)
             self.main_canvas.create_oval(
                 cx - r, cy - r, cx + r, cy + r,
-                outline=color, width=2, tags="matrix_overlay", stipple="gray50"
+                outline=color, width=1, tags="matrix_overlay", stipple="gray50"
             )
 
-        for i in range(60):
-            angle = (self.particle_phase / 12.0) + (i / 7.0)
-            radius = 70 + 55 * math.sin(i / 4.0 + self.particle_phase / 20.0)
+        for i in range(18):
+            angle = (self.particle_phase / 18.0) + (i / 5.0)
+            radius = 160 + 30 * math.sin(i / 2.0 + self.particle_phase / 30.0)
             x = cx + radius * math.cos(angle)
-            y = cy + radius * math.sin(angle * 1.3)
+            y = cy + radius * math.sin(angle * 1.15)
             self.main_canvas.create_oval(
-                x - 2, y - 2, x + 2, y + 2,
+                x - 1.5, y - 1.5, x + 1.5, y + 1.5,
                 fill=color, outline="", tags="matrix_overlay"
             )
 
-        for i in range(16):
-            angle = (self.particle_phase / 6.0) + (i * math.pi / 8)
-            x = cx + 200 * math.cos(angle)
-            y = cy + 100 * math.sin(angle)
-            self.main_canvas.create_line(
-                cx, cy, x, y, fill=color, width=1, tags="matrix_overlay"
-            )
-
         self.main_canvas.create_oval(
-            cx - 34 - 4 * pulse, cy - 34 - 4 * pulse,
-            cx + 34 + 4 * pulse, cy + 34 + 4 * pulse,
-            outline=color, width=3, tags="matrix_overlay"
+            cx - 22 - 2 * pulse, cy - 22 - 2 * pulse,
+            cx + 22 + 2 * pulse, cy + 22 + 2 * pulse,
+            outline=color, width=2, tags="matrix_overlay"
         )
 
         self.main_canvas.create_text(
-            cx, cy + 90,
-            text="4D DATA REACTIVE MATRIX",
-            fill=color,
-            font=("Consolas", 10, "bold"),
+            cx - 10, cy + 100,
+            text="BLUEPRINT // EDITOR",
+            fill="#7cf9ff",
+            font=("Consolas", 9, "bold"),
             tags="matrix_overlay"
         )
 
         self.waveform_canvas.delete("all")
         w, h = 240, 90
-        active_level = 0.35 + self.audio_level * 0.65
+        active_level = 0.2 + self.audio_level * 0.4
         for x in range(0, w, 4):
             phase = (self.particle_phase / 8.0) + (x / 18.0)
-            amp = 8 + (20 * active_level) * math.sin(phase)
+            amp = 6 + (16 * active_level) * math.sin(phase)
             y = h / 2 + amp
             self.waveform_canvas.create_line(x, h / 2, x, y, fill="#00d9ff", width=2)
 
