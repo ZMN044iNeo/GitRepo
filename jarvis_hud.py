@@ -407,9 +407,9 @@ class JarvisHUD(tk.Tk):
 
         try:
             if hasattr(self, "chat_box"):
-                self.log_chat("system", f"Missing voice modules: {', '.join(missing)}. Installing local fallback stack...")
+                self.log_chat("system", f"Missing voice modules: {', '.join(missing)}. Installing local voice stack...")
             else:
-                print(f"[SYSTEM] Missing voice modules: {', '.join(missing)}. Installing local fallback stack...")
+                print(f"[SYSTEM] Missing voice modules: {', '.join(missing)}. Installing local voice stack...")
             subprocess.run(
                 [sys.executable, "-m", "pip", "install", *install_targets],
                 check=False,
