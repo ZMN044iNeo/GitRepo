@@ -1248,13 +1248,24 @@ class JarvisHUD(tk.Tk):
             return
         self.blueprint_phase = (self.blueprint_phase + 1) % 200
         self.blueprint_canvas.delete("all")
-        for x in range(0, 800, 40):
-            self.blueprint_canvas.create_line(x, 0, x, 200, fill="#003344")
-        for y in range(0, 200, 40):
-            self.blueprint_canvas.create_line(0, y, 800, y, fill="#003344")
-        x_pos = self.blueprint_phase * 4
-        self.blueprint_canvas.create_rectangle(x_pos, 0, x_pos + 20, 200, fill="#00FFFF", outline="")
-        self.blueprint_canvas.create_rectangle(0, 0, 800, 200, outline="#00FFFF")
+
+        # Dim engineering grid: background scan layer, intentionally behind arc reactor.
+        for x in range(0, 800, 30):
+            self.blueprint_canvas.create_line(x, 0, x, 220, fill="#123245", width=1)
+        for y in range(0, 220, 30):
+            self.blueprint_canvas.create_line(0, y, 800, y, fill="#123245", width=1)
+
+        # Simulated STL / G-code scan sweep: soft and technical, not a bright foreground block.
+        scan_x = self.blueprint_phase * 3
+        self.blueprint_canvas.create_rectangle(scan_x, 0, scan_x + 30, 220, fill="#12e4ff", outline="", stipple="gray50")
+        self.blueprint_canvas.create_rectangle(scan_x + 120, 20, scan_x + 150, 200, fill="#0bdfff", outline="", stipple="gray25")
+
+        # Add a subtle silhouette / contour suggestion for 3D object scanning.
+        anchor = 120 + 50 * math.sin(self.blueprint_phase / 18.0)
+        self.blueprint_canvas.create_oval(anchor - 30, 55, anchor + 30, 155, outline="#00f7ff", width=1)
+        self.blueprint_canvas.create_line(anchor, 55, anchor, 155, fill="#00f7ff", width=1)
+
+        self.blueprint_canvas.create_rectangle(20, 20, 780, 200, outline="#0ad8ff", width=1)
         if self.blueprint_phase == 199:
             self.blueprint_scanning = False
         self.after(40, self.animate_blueprint_scan)
