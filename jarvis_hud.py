@@ -106,6 +106,9 @@ class JarvisHUD(tk.Tk):
         # ============================
         self.router, self._router_tools, self._router_init_status = self._init_router()
 
+        # Ensure the optional voice stack is available without crashing startup.
+        self.ensure_voice_dependencies()
+
         # ============================
         # SYNC CLIENT
         # ============================
@@ -380,6 +383,56 @@ class JarvisHUD(tk.Tk):
     # ============================================================
     # SYNC / QUEUE
     # ============================================================
+    def ensure_voice_dependencies(self):
+        """Attempt to repair the optional local voice stack without breaking startup."""
+        global sd, np, whisper
+
+        missing = []
+        for module_name, module_obj in (("numpy", np), ("sounddevice", sd), ("whisper", whisper)):
+            if module_obj is None:
+                missing.append(module_name)
+
+        if not missing:
+            return
+
+        package_map = {
+            "numpy": "numpy",
+            "sounddevice": "sounddevice",
+            "whisper": "openai-whisper",
+        }
+        install_targets = [package_map[name] for name in missing if name in package_map]
+        if not install_targets:
+            return
+
+        try:
+            self.log_chat("system", f"Missing voice modules: {', '.join(missing)}. Installing local fallback stack...")
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", *install_targets],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception as exc:
+            self.log_chat("warning", f"Voice dependency install failed: {exc}")
+            return
+
+        for module_name in ("numpy", "sounddevice", "whisper"):
+            try:
+                if module_name == "numpy":
+                    import numpy as np_new
+                    np = np_new
+                elif module_name == "sounddevice":
+                    import sounddevice as sd_new
+                    sd = sd_new
+                elif module_name == "whisper":
+                    import whisper as whisper_new
+                    whisper = whisper_new
+            except Exception:
+                pass
+
+        if any(v is None for v in (sd, whisper, np)):
+            self.log_chat("warning", "Voice stack remains unavailable; running in degraded local-only mode.")
+
     def _sync_ready(self):
         self.sync.running = True
 
@@ -732,7 +785,7 @@ class JarvisHUD(tk.Tk):
             return
         if sd is None or whisper is None or np is None:
             self.voice_requested = False
-            self.log_chat("warning", "Voice stack unavailable; booting in local-only mode.")
+            self.log_chat("warning", "Voice stack unavailable; booting in local-only mode. Install openai-whisper, sounddevice, and numpy for live voice support.")
             return
         self.voice_requested = True
         if self.voice_model is None:
