@@ -1,7 +1,6 @@
 <#
 .SYNOPSIS
     Creates or replaces the Jarvis desktop shortcut for this workspace.
-
 #>
 
 $desktopCandidates = @(
@@ -76,7 +75,7 @@ foreach ($legacy in $legacyShortcutPaths) {
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
 $shortcut.TargetPath = "C:\Windows\System32\cmd.exe"
-$shortcut.Arguments = "/c `"`"$launcherToUse`"`""
+$shortcut.Arguments = "/c \"\"$launcherToUse\"\""
 $shortcut.WorkingDirectory = $PSScriptRoot
 $shortcut.WindowStyle = 1
 $shortcut.IconLocation = "$pythonPath,0"

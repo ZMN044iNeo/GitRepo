@@ -1,14 +1,24 @@
 @echo off
 setlocal
-cd /d "%~dp0"
+set "SCRIPT_DIR=%~dp0"
 
-if exist "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" (
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0launch_jarvis_unified.ps1"
+where powershell.exe >nul 2>nul
+if not errorlevel 1 (
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%launch_jarvis_unified.ps1"
     exit /b %ERRORLEVEL%
 )
 
-if exist "%SystemRoot%\System32\cmd.exe" (
-    echo JARVIS launcher requires PowerShell to run.
+where py >nul 2>nul
+if not errorlevel 1 (
+    py -3 "%SCRIPT_DIR%launch_jarvis_unified.py"
+    exit /b %ERRORLEVEL%
 )
 
+where python >nul 2>nul
+if not errorlevel 1 (
+    python "%SCRIPT_DIR%launch_jarvis_unified.py"
+    exit /b %ERRORLEVEL%
+)
+
+echo JARVIS launcher requires Python 3.10+ to be installed and on PATH.
 exit /b 1
