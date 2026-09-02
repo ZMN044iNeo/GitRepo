@@ -192,57 +192,6 @@ class JarvisHUD(tk.Tk):
         # LOOP AGAIN
         self.after(16, self.animation_loop)  # ~60 FPS
 
-    # ============================================================
-    # MASTER ANIMATION LOOP
-    # ============================================================
-    def animation_loop(self):
-        """Unified animation loop that updates ONLY what is active."""
-
-        # -------------------------
-        # PARTICLES
-        # -------------------------
-        if self.particle_running:
-            self.particle_phase += 1
-            self.animate_particles()
-
-        # -------------------------
-        # WAVEFORM
-        # -------------------------
-        if self.waveform_running:
-            self.waveform_phase += 1
-            self.animate_waveform()
-
-        # -------------------------
-        # DAEMON (terminal pulse)
-        # -------------------------
-        if self.daemon_running:
-            self.daemon_phase += 1
-            self.animate_daemon_pulse()
-
-        # -------------------------
-        # BLUEPRINT SCAN
-        # -------------------------
-        if self.blueprint_scanning:
-            self.blueprint_phase = (self.blueprint_phase + 1) % 200
-            self.animate_blueprint_scan()
-
-        # -------------------------
-        # GRID PULSE
-        # -------------------------
-        if self.grid_pulse_running:
-            self.grid_pulse_phase += 1
-            self.animate_grid_pulse()
-
-        # -------------------------
-        # PREMIUM MODE
-        # -------------------------
-        if self.premium_running:
-            self.premium_phase += 1
-            self.animate_premium()
-
-        # LOOP AGAIN
-        self.after(16, self.animation_loop)  # ~60 FPS
-
     def _voice_reactivity(self):
         if not self.voice_running:
             return
@@ -330,12 +279,6 @@ class JarvisHUD(tk.Tk):
             self.main_canvas, width=240, height=80, bg="#000000", highlightthickness=0
         )
         self.waveform_canvas.place(x=10, y=250)
-
-        # ---- z-order management (lift canvases to ensure proper layering) ----
-        self.sync_beam_canvas.lift()
-        self.blueprint_canvas.lift()
-        self.particle_canvas.lift()
-        self.waveform_canvas.lift()
 
         # ---- chat & console (read-only Text widgets) ----
         self.chat_box = tk.Text(
@@ -1379,6 +1322,26 @@ class JarvisHUD(tk.Tk):
         self.sync_beam_canvas.delete("all")
         self.sync_beam_canvas.create_rectangle(0, 0, 800, 40, fill="#00FFAA", outline="")
         self.after(500, lambda: self.sync_beam_canvas.delete("all"))
+
+    # ============================================================
+    # GRID PULSE OVERLAY
+    # ============================================================
+    def animate_grid_pulse(self):
+        """Render pulsing grid overlay effect."""
+        if not self.grid_pulse_running:
+            return
+        # Placeholder: grid pulse animation
+        pass
+
+    # ============================================================
+    # PREMIUM MODE ANIMATION
+    # ============================================================
+    def animate_premium(self):
+        """Render premium showcase particle effects."""
+        if not self.premium_running:
+            return
+        # Placeholder: premium animation rendering
+        pass
 
     # ============================================================
     # SYNC HOOKS  (call these from anywhere to push events to the bus)
