@@ -75,6 +75,7 @@ class JarvisHUD(tk.Tk):
         self.daemon_phase      = 0
         self.blueprint_phase   = 0
         self.grid_pulse_phase  = 0
+        self.premium_phase     = 0
 
         # Voice state
         self.voice_running = False
@@ -263,6 +264,7 @@ class JarvisHUD(tk.Tk):
         (r"ffmpeg|compress|video", lambda: "ffmpeg command ready. Specify input and output files."),
         (r"dj|prep|track",      lambda: "DJ prep sequence standing by. Specify your audio file."),
         (r"install|upgrade|patch", lambda: "Upgrade pipeline ready. Use: jarvis install upgrades"),
+        (r"showcase|premium|cinematic", lambda: "Premium showcase is live. Use: jarvis premium showcase"),
     ]
 
     def _local_respond(self, text: str):
@@ -328,6 +330,8 @@ class JarvisHUD(tk.Tk):
             return "jarvis pulse daemon"
         if "cinematic" in t or "replay boot" in t:
             return "jarvis cinematic replay"
+        if "premium" in t or "showcase" in t or "movie" in t:
+            return "jarvis premium showcase"
         if ("install" in t or "upgrade" in t) and ("jarvis" in t or "system" in t or "patch" in t or "feature" in t):
             return "jarvis install upgrades"
 
@@ -485,6 +489,11 @@ class JarvisHUD(tk.Tk):
         if cmd == "jarvis cinematic replay":
             self.cinematic_view()
             self.log_chat("jarvis", "Cinematic sequence replayed.")
+            return
+
+        if cmd == "jarvis premium showcase":
+            self.start_premium_showcase()
+            self.log_chat("jarvis", "Premium showcase matrix engaged.")
             return
 
         if cmd in ("jarvis install upgrades", "jarvis upgrade install", "jarvis install"):
@@ -966,6 +975,12 @@ class JarvisHUD(tk.Tk):
         self.particle_canvas.delete("all")
         self.main_canvas.delete("matrix_overlay")
 
+    def start_premium_showcase(self):
+        self.particle_running = True
+        self.premium_phase = 0
+        if not self.main_canvas.find_withtag("matrix_overlay"):
+            self.animate_particles()
+
     def animate_particles(self):
         if not self.particle_running:
             return
@@ -976,16 +991,18 @@ class JarvisHUD(tk.Tk):
         cx, cy = 640, 150
         color = "#cc66ff" if self.matrix_mode == "QUANTUM" else "#00e5ff"
         pulse = 0.5 + (math.sin(self.particle_phase / 8.0) + 1) / 2
+        self.premium_phase += 1
 
-        for ring in (70, 110, 150):
+        for ring in (40, 75, 115, 155, 200):
+            r = ring + 10 * math.sin(self.premium_phase / 12.0)
             self.main_canvas.create_oval(
-                cx - ring, cy - ring, cx + ring, cy + ring,
+                cx - r, cy - r, cx + r, cy + r,
                 outline=color, width=2, tags="matrix_overlay", stipple="gray50"
             )
 
-        for i in range(36):
+        for i in range(42):
             angle = (self.particle_phase / 12.0) + (i / 6.0)
-            radius = 72 + 35 * math.sin(i / 4.0 + self.particle_phase / 20.0)
+            radius = 72 + 45 * math.sin(i / 4.0 + self.particle_phase / 20.0)
             x = cx + radius * math.cos(angle)
             y = cy + radius * math.sin(angle * 1.3)
             self.main_canvas.create_oval(
@@ -993,10 +1010,10 @@ class JarvisHUD(tk.Tk):
                 fill=color, outline="", tags="matrix_overlay"
             )
 
-        for i in range(12):
-            angle = (self.particle_phase / 6.0) + (i * math.pi / 6)
-            x = cx + 170 * math.cos(angle)
-            y = cy + 80 * math.sin(angle)
+        for i in range(18):
+            angle = (self.particle_phase / 6.0) + (i * math.pi / 9)
+            x = cx + 185 * math.cos(angle)
+            y = cy + 92 * math.sin(angle)
             self.main_canvas.create_line(
                 cx, cy, x, y, fill=color, width=1, tags="matrix_overlay"
             )
