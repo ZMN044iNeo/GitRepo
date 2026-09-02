@@ -199,35 +199,35 @@ class JarvisHUD(tk.Tk):
 
         # ---- canvases ----
         self.main_canvas = tk.Canvas(
-            self, width=1500, height=360, bg="#02070d", highlightthickness=0
+            self, width=940, height=360, bg="#02070d", highlightthickness=0
         )
         self.main_canvas.pack(fill="x", padx=0, pady=0)
         self.main_canvas.configure(highlightthickness=0)
 
         self.blueprint_canvas = tk.Canvas(
-            self.main_canvas, width=860, height=238, bg="#02070d", highlightthickness=0
+            self.main_canvas, width=540, height=238, bg="#02070d", highlightthickness=0
         )
-        self.blueprint_canvas.place(x=300, y=42)
+        self.blueprint_canvas.place(x=188, y=42)
 
         self.core_canvas = tk.Canvas(
             self.main_canvas, width=360, height=220, bg="#02070d", highlightthickness=0
         )
-        self.core_canvas.place(x=570, y=46)
+        self.core_canvas.place(x=357, y=46)
 
         self.particle_canvas = tk.Canvas(
             self.main_canvas, width=260, height=200, bg="#02070d", highlightthickness=0
         )
-        self.particle_canvas.place(x=490, y=52)
+        self.particle_canvas.place(x=307, y=52)
 
         self.waveform_canvas = tk.Canvas(
-            self, width=380, height=90, bg="#02070d", highlightthickness=0
+            self, width=900, height=90, bg="#02070d", highlightthickness=0
         )
         self.waveform_canvas.pack(fill="x", padx=12, pady=(0, 4))
 
         self.sync_beam_canvas = tk.Canvas(
-            self.main_canvas, width=840, height=44, bg="#02070d", highlightthickness=0
+            self.main_canvas, width=527, height=44, bg="#02070d", highlightthickness=0
         )
-        self.sync_beam_canvas.place(x=340, y=12)
+        self.sync_beam_canvas.place(x=213, y=12)
 
         # ---- chat & console (read-only Text widgets) ----
         self.chat_box = tk.Text(
@@ -1018,7 +1018,7 @@ class JarvisHUD(tk.Tk):
     # ============================================================
     def cinematic_arc_reactor(self):
         # centered on main_canvas, not sync_beam_canvas
-        cx, cy, base_r = 640, 150, 20
+        cx, cy, base_r = 470, 150, 20
 
         def pulse(step=0):
             self.main_canvas.delete("arc_reactor")
@@ -1041,13 +1041,13 @@ class JarvisHUD(tk.Tk):
     def cinematic_grid(self):
         self.main_canvas.delete("cinematic_grid")
         self.grid_pulse_phase = 0
-        for x in range(0, 1280, 40):
+        for x in range(0, 940, 40):
             self.main_canvas.create_line(x, 0, x, 300, fill="#0b1520", width=1, tags="cinematic_grid")
         for y in range(0, 300, 40):
-            self.main_canvas.create_line(0, y, 1280, y, fill="#0b1520", width=1, tags="cinematic_grid")
+            self.main_canvas.create_line(0, y, 940, y, fill="#0b1520", width=1, tags="cinematic_grid")
 
         self.sync_beam_canvas.create_rectangle(
-            0, 0, 800, 40, fill="#00FFFF", outline="", tags="sync_flash"
+            0, 0, 527, 40, fill="#00FFFF", outline="", tags="sync_flash"
         )
 
         def fade_flash(step=0):
@@ -1072,7 +1072,7 @@ class JarvisHUD(tk.Tk):
             self.main_canvas.itemconfig(item, fill="#12273a")
 
         pulse = 0.5 + (math.sin(self.grid_pulse_phase / 8.0) + 1) / 2
-        for x in range(0, 1280, 40):
+        for x in range(0, 940, 40):
             for y in range(0, 300, 40):
                 target = self.main_canvas.find_overlapping(x - 5, y - 5, x + 5, y + 5)
                 if not target:
@@ -1155,12 +1155,12 @@ class JarvisHUD(tk.Tk):
         self.particle_canvas.delete("all")
 
         # Background grid: dim and transparent when idle, brighter when active.
-        cx, cy = 640, 150
+        cx, cy = 470, 150
         color = "#cc66ff" if self.matrix_mode == "QUANTUM" else "#00e5ff"
         pulse = 0.5 + (math.sin(self.particle_phase / 12.0) + 1) / 2
         self.premium_phase += 1
 
-        for x in range(0, 1280, 42):
+        for x in range(0, 940, 42):
             self.main_canvas.create_line(
                 x, 0, x, 300,
                 fill="#0b1320" if pulse < 0.7 else "#16364d",
@@ -1170,7 +1170,7 @@ class JarvisHUD(tk.Tk):
             )
         for y in range(0, 300, 42):
             self.main_canvas.create_line(
-                0, y, 1280, y,
+                0, y, 940, y,
                 fill="#0b1320" if pulse < 0.7 else "#16364d",
                 width=1,
                 tags="grid_overlay",
@@ -1211,7 +1211,7 @@ class JarvisHUD(tk.Tk):
         )
 
         self.waveform_canvas.delete("all")
-        w, h = 240, 90
+        w, h = 876, 90
         active_level = 0.2 + self.audio_level * 0.4
         for x in range(0, w, 4):
             phase = (self.particle_phase / 8.0) + (x / 18.0)
@@ -1273,7 +1273,7 @@ class JarvisHUD(tk.Tk):
         if not self.waveform_running:
             return
         self.waveform_canvas.delete("all")
-        w, h = 240, 80
+        w, h = 876, 80
         for x in range(0, w, 4):
             phase = (self.waveform_phase / 5.0) + (x / 20.0)
             amplitude = 8 + (32 * self.audio_level)
@@ -1305,7 +1305,7 @@ class JarvisHUD(tk.Tk):
         intensity = (math.sin(self.daemon_phase / 5.0) + 1) / 2
         alpha = int(50 + 205 * intensity)
         self.main_canvas.create_rectangle(
-            0, 0, 1280, 300, outline="", fill=f"#{alpha:02x}0000", tags="daemon_pulse"
+            0, 0, 940, 300, outline="", fill=f"#{alpha:02x}0000", tags="daemon_pulse"
         )
         self.daemon_phase += 1
         self.after(40, self.animate_daemon_pulse)
