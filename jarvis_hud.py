@@ -57,6 +57,7 @@ class JarvisHUD(tk.Tk):
         self.title("JARVIS HUD V4.0")
         self.geometry("1280x720")
         self.configure(bg="#000000")
+        self.attributes("-alpha", 0.96)
 
         # ============================
         # HUD STATE  (must come before any after() scheduling)
@@ -125,6 +126,24 @@ class JarvisHUD(tk.Tk):
         self.after(150, lambda: self.attributes("-topmost", False))
         self.focus_force()
 
+    def _voice_reactivity(self):
+        if not self.voice_running:
+            return
+        level = min(max(self.audio_level, 0.0), 1.0)
+        self.main_canvas.delete("voice_reactive")
+        cx, cy = 640, 150
+        glow = 60 + int(level * 120)
+        self.main_canvas.create_oval(
+            cx - glow, cy - glow, cx + glow, cy + glow,
+            outline="#66f7ff", width=2, tags="voice_reactive", stipple="gray50"
+        )
+        self.main_canvas.create_oval(
+            cx - 30 - int(level * 30), cy - 30 - int(level * 30),
+            cx + 30 + int(level * 30), cy + 30 + int(level * 30),
+            outline="#b7f7ff", width=3, tags="voice_reactive"
+        )
+        self.after(60, self._voice_reactivity)
+
     # ============================================================
     # UI CONSTRUCTION
     # ============================================================
@@ -152,29 +171,30 @@ class JarvisHUD(tk.Tk):
             self, width=1280, height=300, bg="#000000", highlightthickness=0
         )
         self.main_canvas.pack(fill="x")
+        self.main_canvas.configure(highlightthickness=0)
 
         self.blueprint_canvas = tk.Canvas(
-            self.main_canvas, width=800, height=200, bg="#000000", highlightthickness=0
+            self.main_canvas, width=800, height=200, bg="", highlightthickness=0
         )
         self.blueprint_canvas.place(x=240, y=40)
 
         self.core_canvas = tk.Canvas(
-            self.main_canvas, width=320, height=200, bg="#000000", highlightthickness=0
+            self.main_canvas, width=320, height=200, bg="", highlightthickness=0
         )
         self.core_canvas.place(x=480, y=40)
 
         self.particle_canvas = tk.Canvas(
-            self.main_canvas, width=240, height=200, bg="#000000", highlightthickness=0
+            self.main_canvas, width=240, height=200, bg="", highlightthickness=0
         )
         self.particle_canvas.place(x=10, y=40)
 
         self.waveform_canvas = tk.Canvas(
-            self.main_canvas, width=240, height=80, bg="#000000", highlightthickness=0
+            self.main_canvas, width=240, height=80, bg="", highlightthickness=0
         )
         self.waveform_canvas.place(x=10, y=250)
 
         self.sync_beam_canvas = tk.Canvas(
-            self.main_canvas, width=800, height=40, bg="#000000", highlightthickness=0
+            self.main_canvas, width=800, height=40, bg="", highlightthickness=0
         )
         self.sync_beam_canvas.place(x=240, y=10)
 
@@ -186,6 +206,7 @@ class JarvisHUD(tk.Tk):
             font=("Consolas", 12),
             height=10,
             state="disabled",
+            insertbackground="#00FF00",
         )
         self.chat_box.pack(fill="x", padx=10, pady=5)
 
@@ -660,6 +681,7 @@ class JarvisHUD(tk.Tk):
 
         self.voice_running = True
         self.start_voice_waveform()
+        self._voice_reactivity()
         threading.Thread(target=self._voice_loop, daemon=True).start()
         self.log_chat("jarvis", "Voice command system online.")
         self.speak("Voice command system online.")
@@ -668,17 +690,17 @@ class JarvisHUD(tk.Tk):
         self.voice_requested = False
         self.voice_running = False
         self.audio_level = 0.0
+        self.main_canvas.delete("voice_reactive")
         self.stop_voice_waveform()
         self.log_chat("jarvis", "Voice command system offline.")
 
     def speak(self, text: str):
-        """Speak through Windows SAPI with a cleaner, more cinematic voice profile."""
+        """Speak through Windows SAPI with a cleaner, Jarvis-like voice profile."""
         if not self.voice_output_enabled or not text:
             return
         threading.Thread(target=self._speak_worker, args=(text,), daemon=True).start()
 
     def _speak_worker(self, text: str):
-        voice_choice = ""
         preferred = [
             "Microsoft Zira Desktop",
             "Microsoft David Desktop",
@@ -687,16 +709,13 @@ class JarvisHUD(tk.Tk):
             "Microsoft Jenny Desktop",
             "Microsoft Hazel Desktop",
         ]
-        for candidate in preferred:
-            voice_choice = candidate
-            break
+        voice_choice = preferred[0] if preferred else ""
 
         script = (
             "Add-Type -AssemblyName System.Speech; "
             "$speaker = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
-            "$speaker.Rate = -1; $speaker.Volume = 95; "
-            f"$voices = $speaker.GetInstalledVoices(); "
-            f"foreach ($v in $voices) {{ if ($v.VoiceInfo.Name -match {voice_choice!r}) {{ $speaker.SelectVoice($v.VoiceInfo.Name); break }} }}; "
+            "$speaker.Rate = -2; $speaker.Volume = 90; "
+            "$speaker.SelectVoice('Microsoft David Desktop'); "
             f"$speaker.Speak({text!r})"
         )
         encoded = base64.b64encode(script.encode("utf-16le")).decode("ascii")
