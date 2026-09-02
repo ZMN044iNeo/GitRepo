@@ -67,9 +67,24 @@ class JarvisHUD(tk.Tk):
         # The HUD should behave as a solid desktop shell, not a translucent
         # window that reveals the underlying desktop through the background.
 
-        # ============================
-        # ANIMATION STATE + MASTER LOOP CONTROLLER
-        # ============================
+        # ============================================================
+        # HUD STATE / STATUS SYNC (Fixes control panel crash)
+        # ============================================================
+        # Core HUD status (Control Panel reads this)
+        self.current_status = "BOOTING"
+
+        # HUD mode flags
+        self.matrix_mode       = "DEFAULT"
+        self.voice_enabled     = False
+        self.sync_enabled      = False
+        self.premium_enabled   = False
+
+        # Message queue for thread-safe logging
+        self.msg_queue         = queue.Queue()
+
+        # ============================================================
+        # ANIMATION FLAGS + PHASES (Unified Master Loop)
+        # ============================================================
         # Animation flags
         self.particle_running      = False
         self.waveform_running      = False
@@ -131,7 +146,6 @@ class JarvisHUD(tk.Tk):
         self.after(100, self._poll_queue)
         self.after(200, self._show_in_foreground)
         self.after(16, self.animation_loop)  # Start master animation loop (~60 FPS)
-        self.after(16, self.animation_loop)  # Start master animation loop (~60 FPS)
 
     def _show_in_foreground(self):
         """Ensure a windowless shortcut launch is visible to the user."""
@@ -142,55 +156,43 @@ class JarvisHUD(tk.Tk):
         self.focus_force()
 
     # ============================================================
-    # MASTER ANIMATION LOOP
+    # MASTER ANIMATION LOOP (60 FPS unified renderer)
     # ============================================================
     def animation_loop(self):
         """Unified animation loop that updates ONLY what is active."""
 
-        # -------------------------
         # PARTICLES
-        # -------------------------
         if self.particle_running:
             self.particle_phase += 1
             self.animate_particles()
 
-        # -------------------------
         # WAVEFORM
-        # -------------------------
         if self.waveform_running:
             self.waveform_phase += 1
             self.animate_waveform()
 
-        # -------------------------
-        # DAEMON (terminal pulse)
-        # -------------------------
+        # DAEMON TERMINAL PULSE
         if self.daemon_running:
             self.daemon_phase += 1
             self.animate_daemon_pulse()
 
-        # -------------------------
         # BLUEPRINT SCAN
-        # -------------------------
         if self.blueprint_scanning:
-            self.blueprint_phase = (self.blueprint_phase + 1) % 200
+            self.blueprint_phase += 1
             self.animate_blueprint_scan()
 
-        # -------------------------
         # GRID PULSE
-        # -------------------------
         if self.grid_pulse_running:
             self.grid_pulse_phase += 1
             self.animate_grid_pulse()
 
-        # -------------------------
         # PREMIUM MODE
-        # -------------------------
         if self.premium_running:
             self.premium_phase += 1
             self.animate_premium()
 
-        # LOOP AGAIN
-        self.after(16, self.animation_loop)  # ~60 FPS
+        # LOOP AGAIN (~60 FPS)
+        self.after(16, self.animation_loop)
 
     def _voice_reactivity(self):
         if not self.voice_running:
@@ -1057,7 +1059,7 @@ class JarvisHUD(tk.Tk):
         self.set_matrix_mode("DEFAULT")
         # Don't start particles yet - let cinematic finish first
         self.cinematic_view()
-        self.after(1500, lambda: self.update_status("ONLINE"))
+        self.after(1500, lambda: (self.update_status("ONLINE"), self.control_panel.refresh()))
 
     def cinematic_view(self):
         # Clean slate: clear all cinematic tags to prepare for fresh animation
