@@ -8,9 +8,22 @@ import base64
 import subprocess
 from pathlib import Path
 
-import sounddevice as sd
-import numpy as np
-import whisper
+# Optional runtime dependencies: the HUD must still boot in a local-safe mode
+# if the voice stack is unavailable on this machine.
+try:
+    import sounddevice as sd
+except Exception:
+    sd = None
+
+try:
+    import numpy as np
+except Exception:
+    np = None
+
+try:
+    import whisper
+except Exception:
+    whisper = None
 
 from jarvis_sync_client_tk import JarvisSyncClientTK
 from jarvis_control_panel import JarvisControlPanel
@@ -552,6 +565,10 @@ class JarvisHUD(tk.Tk):
         if self.voice_running:
             self.log_chat("jarvis", "Voice already online.")
             return
+        if sd is None or whisper is None or np is None:
+            self.voice_requested = False
+            self.log_chat("warning", "Voice stack unavailable; booting in local-only mode.")
+            return
         self.voice_requested = True
         if self.voice_model is None:
             if not self.voice_loading:
@@ -563,6 +580,9 @@ class JarvisHUD(tk.Tk):
         self._begin_voice_capture()
 
     def _load_voice_model(self):
+        if whisper is None:
+            self.after(0, lambda: self._on_voice_model_error(RuntimeError("whisper is not installed")))
+            return
         try:
             model = whisper.load_model("tiny")
             self.after(0, lambda: self._on_voice_model_ready(model))
@@ -581,6 +601,10 @@ class JarvisHUD(tk.Tk):
         self.log_chat("error", f"Whisper load failed: {exc}")
 
     def _begin_voice_capture(self):
+        if sd is None or whisper is None or np is None:
+            self.voice_requested = False
+            self.log_chat("warning", "Voice capture unavailable on this machine.")
+            return
         if self.voice_running or not self.voice_requested or self.voice_model is None:
             return
 
@@ -629,6 +653,11 @@ class JarvisHUD(tk.Tk):
         - Transcribes with Whisper (tiny model)
         - Routes commands through ai_interpret()
         """
+        if sd is None or np is None or whisper is None:
+            self.after(0, lambda: self.log_chat("warning", "Voice loop skipped: audio stack is unavailable."))
+            self.voice_running = False
+            return
+
         sample_rate = 16_000
         duration    = 4  # seconds per capture window
         wake_word_detected = False
