@@ -30,7 +30,8 @@ $legacyShortcutPaths = @(
     (Join-Path $desktop "JARVIS HUD V4.0.lnk"),
     (Join-Path $desktop "launch_jarvis_unified.lnk"),
     (Join-Path $desktop "Jarvis HUD V4.0.lnk"),
-    (Join-Path $desktop "JARVIS.lnk")
+    (Join-Path $desktop "JARVIS.lnk"),
+    (Join-Path $desktop "Jarvis Desktop Launcher.lnk")
 ) | Select-Object -Unique
 
 $cmdLauncher = Join-Path $PSScriptRoot "launch_jarvis_unified.cmd"
@@ -75,7 +76,7 @@ foreach ($legacy in $legacyShortcutPaths) {
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
 $shortcut.TargetPath = "C:\Windows\System32\cmd.exe"
-$shortcut.Arguments = "/c \"\"$launcherToUse\"\""
+$shortcut.Arguments = "/c `"\"$launcherToUse\"`""
 $shortcut.WorkingDirectory = $PSScriptRoot
 $shortcut.WindowStyle = 1
 $shortcut.IconLocation = "$pythonPath,0"
