@@ -1239,10 +1239,10 @@ class JarvisHUD(tk.Tk):
         }
 
     # ============================================================
-    # HOLOGRAPHIC MATRIX ENGINE + INTEGRATED BLUEPRINT SCAN
+    # HOLOGRAPHIC ARC REACTOR ENGINE — REACTOR ECLIPSE DOMINANCE
     # ============================================================
     def animate_matrix_holographic(self):
-        """High-density holographic matrix animation with integrated blueprint scan."""
+        """Arc Reactor dominant holographic matrix with outer-grid blueprint scan."""
         level = min(max(self.audio_level, 0.0), 1.0)
         colors = self._matrix_colors()
 
@@ -1251,27 +1251,47 @@ class JarvisHUD(tk.Tk):
         cx, cy = 640, 150
 
         # ============================================================
-        # 1. Concentric Rings
+        # 1. ARC REACTOR CORE (dominant)
         # ============================================================
-        base_radius = 60 + int(level * 90)
-        for i in range(12):
-            r = base_radius + (i * 18)
-            self.main_canvas.create_oval(
-                cx - r, cy - r, cx + r, cy + r,
-                outline=colors["ring"],
-                width=3,
-                tags="holo"
-            )
+        core_radius = 140 + int(level * 40)
+
+        # Outer glow ring
+        self.main_canvas.create_oval(
+            cx - core_radius, cy - core_radius,
+            cx + core_radius, cy + core_radius,
+            outline=colors["core"],
+            width=6,
+            tags="holo"
+        )
+
+        # Mid glow ring
+        self.main_canvas.create_oval(
+            cx - core_radius//1.5, cy - core_radius//1.5,
+            cx + core_radius//1.5, cy + core_radius//1.5,
+            outline=colors["inner"],
+            width=5,
+            tags="holo"
+        )
+
+        # Inner pulse
+        self.main_canvas.create_oval(
+            cx - core_radius//3, cy - core_radius//3,
+            cx + core_radius//3, cy + core_radius//3,
+            outline=colors["ring"],
+            width=4,
+            tags="holo"
+        )
 
         # ============================================================
-        # 2. Particle Halo
+        # 2. PARTICLE HALO (dense outer ring)
         # ============================================================
-        particle_count = 140
+        particle_count = 200
+        halo_radius = core_radius + 120 + int(level * 40)
+
         for i in range(particle_count):
-            angle = (self.waveform_phase / 14.0) + (i * 0.045)
-            radius = base_radius + 180 + int(level * 70)
-            px = cx + radius * math.cos(angle)
-            py = cy + radius * math.sin(angle)
+            angle = (self.waveform_phase / 14.0) + (i * 0.031)
+            px = cx + halo_radius * math.cos(angle)
+            py = cy + halo_radius * math.sin(angle)
 
             self.main_canvas.create_oval(
                 px - 2, py - 2, px + 2, py + 2,
@@ -1281,77 +1301,45 @@ class JarvisHUD(tk.Tk):
             )
 
         # ============================================================
-        # 3. Vertical Bars (Spectrum)
+        # 3. OUTER GRID (blueprint mesh)
         # ============================================================
-        bar_x = 240
-        bar_y = 40
-        bar_width = 10
-        bar_spacing = 6
-        bar_count = 32
+        grid_top = cy - (core_radius + 160)
+        grid_bottom = cy + (core_radius + 160)
 
-        for i in range(bar_count):
-            height = 30 + int(level * 180) + int(math.sin(self.waveform_phase/10 + i)*60)
-            x1 = bar_x + i * (bar_width + bar_spacing)
-            y1 = bar_y + (200 - height)
-            x2 = x1 + bar_width
-            y2 = bar_y + 200
-
-            self.main_canvas.create_rectangle(
-                x1, y1, x2, y2,
-                fill=colors["bar"],
-                outline="",
-                tags="holo"
-            )
-
-        # ============================================================
-        # 4. Energy Core
-        # ============================================================
-        pulse = 30 + int(level * 70)
-
-        self.main_canvas.create_oval(
-            cx - pulse, cy - pulse, cx + pulse, cy + pulse,
-            outline=colors["core"],
-            width=4,
-            tags="holo"
-        )
-
-        self.main_canvas.create_oval(
-            cx - pulse//2, cy - pulse//2,
-            cx + pulse//2, cy + pulse//2,
-            outline=colors["inner"],
-            width=3,
-            tags="holo"
-        )
-
-        # ============================================================
-        # 5. HOLOGRAPHIC GRID + BLUEPRINT SCAN (merged)
-        # ============================================================
-        scan_x = (self.waveform_phase * 8) % 1280  # scanning beam position
+        scan_x = (self.waveform_phase * 10) % 1280
 
         for x in range(0, 1280, 60):
-            offset = int(math.sin(self.waveform_phase/18 + x/120) * 12 * level)
+            # Skip grid lines inside the core zone
+            if abs(x - cx) < core_radius:
+                continue
+
+            offset = int(math.sin(self.waveform_phase/18 + x/120) * 10 * level)
 
             # Base grid line
             self.main_canvas.create_line(
-                x, 0 + offset,
-                x, 300 - offset,
+                x, grid_top + offset,
+                x, grid_bottom - offset,
                 fill=colors["grid"],
                 width=1,
                 tags="holo"
             )
 
-            # Highlight grid cells near the scan beam
+            # Scan highlight (outer only)
             if abs(x - scan_x) < 40:
                 self.main_canvas.create_line(
-                    x, 0 + offset,
-                    x, 300 - offset,
+                    x, grid_top + offset,
+                    x, grid_bottom - offset,
                     fill=colors["scan"],
                     width=3,
                     tags="holo"
                 )
 
         # Horizontal grid lines
-        for y in range(0, 300, 40):
+        for y in range(grid_top, grid_bottom, 50):
+            # Skip inside core zone
+            if abs(y - cy) < core_radius:
+                continue
+
             self.main_canvas.create_line(
                 0, y,
                 1280, y,
@@ -1361,7 +1349,7 @@ class JarvisHUD(tk.Tk):
             )
 
             # Scan highlight
-            if abs(y - (scan_x % 300)) < 20:
+            if abs(y - (scan_x % 300)) < 25:
                 self.main_canvas.create_line(
                     0, y,
                     1280, y,
@@ -1371,11 +1359,11 @@ class JarvisHUD(tk.Tk):
                 )
 
         # ============================================================
-        # 6. Floating Dust
+        # 4. FLOATING DUST (ambient hologram particles)
         # ============================================================
-        for i in range(40):
+        for i in range(50):
             dx = (i * 32 + self.waveform_phase * 2) % 1280
-            dy = 40 + int(math.sin(self.waveform_phase/12 + i)*120)
+            dy = grid_top + int(math.sin(self.waveform_phase/12 + i)*160)
             self.main_canvas.create_oval(
                 dx - 2, dy - 2, dx + 2, dy + 2,
                 fill=colors["dust"],
