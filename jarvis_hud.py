@@ -1638,11 +1638,11 @@ class JarvisHUD(tk.Tk):
         self.sync_beam_canvas.place(x=240, y=10)
 
         # Lift canvases in correct order
-        self.main_canvas.lift()
-        self.blueprint_canvas.lift()
-        self.particle_canvas.lift()
-        self.waveform_canvas.lift()
-        self.sync_beam_canvas.lift()
+        self.main_canvas.tkraise()
+        self.blueprint_canvas.tkraise()
+        self.particle_canvas.tkraise()
+        self.waveform_canvas.tkraise()
+        self.sync_beam_canvas.tkraise()
 
         # Start voice reactivity if voice is active
         if self.voice_running:
