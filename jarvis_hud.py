@@ -1061,6 +1061,196 @@ class JarvisHUD(tk.Tk):
         )
 
     # ============================================================
+    # MATRIX COLOR MODES
+    # ============================================================
+    def _matrix_colors(self):
+        """Return color palette based on current matrix mode."""
+        mode = str(self.matrix_mode).lower()
+
+        if mode == "quantum":
+            return {
+                "ring":    "#00ccff",
+                "particle":"#33ddff",
+                "bar":     "#00aaff",
+                "core":    "#33ffff",
+                "inner":   "#00bbff",
+                "grid":    "#003344",
+                "dust":    "#44ddff",
+                "scan":    "#00ffff",
+            }
+
+        if mode == "stealth":
+            return {
+                "ring":    "#331144",
+                "particle":"#552266",
+                "bar":     "#442255",
+                "core":    "#663377",
+                "inner":   "#442255",
+                "grid":    "#220022",
+                "dust":    "#553366",
+                "scan":    "#442255",
+            }
+
+        if mode == "overclock":
+            return {
+                "ring":    "#ff0099",
+                "particle":"#ff33cc",
+                "bar":     "#ff66cc",
+                "core":    "#ffffff",
+                "inner":   "#ff33aa",
+                "grid":    "#440022",
+                "dust":    "#ff55cc",
+                "scan":    "#ff33aa",
+            }
+
+        # DEFAULT MODE (purple / blue neon)
+        return {
+            "ring":    "#bb00ff",
+            "particle":"#cc33ff",
+            "bar":     "#8833ff",
+            "core":    "#ff33ff",
+            "inner":   "#aa00ff",
+            "grid":    "#330044",
+            "dust":    "#9933ff",
+            "scan":    "#aa00ff",
+        }
+
+    # ============================================================
+    # HOLOGRAPHIC ARC REACTOR ENGINE
+    # ============================================================
+    def animate_matrix_holographic(self):
+        """Arc Reactor dominant holographic matrix with outer-grid blueprint scan."""
+        level = min(max(self.audio_level, 0.0), 1.0)
+        colors = self._matrix_colors()
+
+        self.main_canvas.delete("holo")
+
+        cx, cy = 640, 150
+
+        # ============================================================
+        # 1. ARC REACTOR CORE (dominant)
+        # ============================================================
+        core_radius = 140 + int(level * 40)
+
+        # Outer glow ring
+        self.main_canvas.create_oval(
+            cx - core_radius, cy - core_radius,
+            cx + core_radius, cy + core_radius,
+            outline=colors["core"],
+            width=6,
+            tags="holo"
+        )
+
+        # Mid glow ring
+        self.main_canvas.create_oval(
+            cx - core_radius//1.5, cy - core_radius//1.5,
+            cx + core_radius//1.5, cy + core_radius//1.5,
+            outline=colors["inner"],
+            width=5,
+            tags="holo"
+        )
+
+        # Inner pulse
+        self.main_canvas.create_oval(
+            cx - core_radius//3, cy - core_radius//3,
+            cx + core_radius//3, cy + core_radius//3,
+            outline=colors["ring"],
+            width=4,
+            tags="holo"
+        )
+
+        # ============================================================
+        # 2. PARTICLE HALO (dense outer ring)
+        # ============================================================
+        particle_count = 200
+        halo_radius = core_radius + 120 + int(level * 40)
+
+        for i in range(particle_count):
+            angle = (self.waveform_phase / 14.0) + (i * 0.031)
+            px = cx + halo_radius * math.cos(angle)
+            py = cy + halo_radius * math.sin(angle)
+
+            self.main_canvas.create_oval(
+                px - 2, py - 2, px + 2, py + 2,
+                fill=colors["particle"],
+                outline="",
+                tags="holo"
+            )
+
+        # ============================================================
+        # 3. OUTER GRID (blueprint mesh)
+        # ============================================================
+        grid_top = cy - (core_radius + 160)
+        grid_bottom = cy + (core_radius + 160)
+
+        scan_x = (self.waveform_phase * 10) % 1280
+
+        for x in range(0, 1280, 60):
+            # Skip grid lines inside the core zone
+            if abs(x - cx) < core_radius:
+                continue
+
+            offset = int(math.sin(self.waveform_phase/18 + x/120) * 10 * level)
+
+            # Base grid line
+            self.main_canvas.create_line(
+                x, grid_top + offset,
+                x, grid_bottom - offset,
+                fill=colors["grid"],
+                width=1,
+                tags="holo"
+            )
+
+            # Scan highlight (outer only)
+            if abs(x - scan_x) < 40:
+                self.main_canvas.create_line(
+                    x, grid_top + offset,
+                    x, grid_bottom - offset,
+                    fill=colors["scan"],
+                    width=3,
+                    tags="holo"
+                )
+
+        # Horizontal grid lines
+        for y in range(grid_top, grid_bottom, 50):
+            # Skip inside core zone
+            if abs(y - cy) < core_radius:
+                continue
+
+            self.main_canvas.create_line(
+                0, y,
+                1280, y,
+                fill=colors["grid"],
+                width=1,
+                tags="holo"
+            )
+
+            # Scan highlight
+            if abs(y - (scan_x % 300)) < 25:
+                self.main_canvas.create_line(
+                    0, y,
+                    1280, y,
+                    fill=colors["scan"],
+                    width=2,
+                    tags="holo"
+                )
+
+        # ============================================================
+        # 4. FLOATING DUST (ambient hologram particles)
+        # ============================================================
+        for i in range(50):
+            dx = (i * 32 + self.waveform_phase * 2) % 1280
+            dy = grid_top + int(math.sin(self.waveform_phase/12 + i)*160)
+            self.main_canvas.create_oval(
+                dx - 2, dy - 2, dx + 2, dy + 2,
+                fill=colors["dust"],
+                outline="",
+                tags="holo"
+            )
+
+        self.waveform_phase += 1
+
+    # ============================================================
     # CHAT / CONSOLE  (always called from the main thread)
     # ============================================================
     def log_chat(self, msg_type: str, msg: str):
