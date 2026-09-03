@@ -170,8 +170,7 @@ class JarvisHUD(tk.Tk):
     def animation_loop(self):
         """Unified animation loop that updates ONLY what is active."""
 
-        # HOLOGRAPHIC MATRIX (always running)
-        self.waveform_phase += 1
+        # HOLOGRAPHIC MATRIX (always running as primary visual layer)
         self.animate_matrix_holographic()
 
         # PARTICLES
@@ -1185,7 +1184,7 @@ class JarvisHUD(tk.Tk):
         self.after(40, self.animate_holographic_core)
 
     # ============================================================
-    # HOLOGRAPHIC MATRIX COLOR MODES
+    # MATRIX COLOR MODES (DEFAULT / QUANTUM / STEALTH / OVERCLOCK)
     # ============================================================
     def _matrix_colors(self):
         """Return color palette based on current matrix mode."""
@@ -1200,6 +1199,7 @@ class JarvisHUD(tk.Tk):
                 "inner":   "#00bbff",
                 "grid":    "#003344",
                 "dust":    "#44ddff",
+                "scan":    "#00ffff",
             }
 
         if mode == "stealth":
@@ -1211,6 +1211,7 @@ class JarvisHUD(tk.Tk):
                 "inner":   "#442255",
                 "grid":    "#220022",
                 "dust":    "#553366",
+                "scan":    "#442255",
             }
 
         if mode == "overclock":
@@ -1222,6 +1223,7 @@ class JarvisHUD(tk.Tk):
                 "inner":   "#ff33aa",
                 "grid":    "#440022",
                 "dust":    "#ff55cc",
+                "scan":    "#ff33aa",
             }
 
         # DEFAULT MODE (purple / blue neon)
@@ -1233,23 +1235,23 @@ class JarvisHUD(tk.Tk):
             "inner":   "#aa00ff",
             "grid":    "#330044",
             "dust":    "#9933ff",
+            "scan":    "#aa00ff",
         }
 
     # ============================================================
-    # HOLOGRAPHIC MATRIX ENGINE — FULL UNIFIED ANIMATION
+    # HOLOGRAPHIC MATRIX ENGINE + INTEGRATED BLUEPRINT SCAN
     # ============================================================
     def animate_matrix_holographic(self):
-        """High-density holographic matrix animation with color modes."""
+        """High-density holographic matrix animation with integrated blueprint scan."""
         level = min(max(self.audio_level, 0.0), 1.0)
         colors = self._matrix_colors()
 
-        # Clear previous frame
         self.main_canvas.delete("holo")
 
         cx, cy = 640, 150
 
         # ============================================================
-        # 1. Concentric Rings (reactive pulse)
+        # 1. Concentric Rings
         # ============================================================
         base_radius = 60 + int(level * 90)
         for i in range(12):
@@ -1262,13 +1264,12 @@ class JarvisHUD(tk.Tk):
             )
 
         # ============================================================
-        # 2. Particle Halo (orbiting particles)
+        # 2. Particle Halo
         # ============================================================
         particle_count = 140
         for i in range(particle_count):
             angle = (self.waveform_phase / 14.0) + (i * 0.045)
             radius = base_radius + 180 + int(level * 70)
-
             px = cx + radius * math.cos(angle)
             py = cy + radius * math.sin(angle)
 
@@ -1280,7 +1281,7 @@ class JarvisHUD(tk.Tk):
             )
 
         # ============================================================
-        # 3. Vertical Light Bars (audio spectrum)
+        # 3. Vertical Bars (Spectrum)
         # ============================================================
         bar_x = 240
         bar_y = 40
@@ -1303,11 +1304,10 @@ class JarvisHUD(tk.Tk):
             )
 
         # ============================================================
-        # 4. Energy Core (glowing pulse)
+        # 4. Energy Core
         # ============================================================
         pulse = 30 + int(level * 70)
 
-        # Outer core
         self.main_canvas.create_oval(
             cx - pulse, cy - pulse, cx + pulse, cy + pulse,
             outline=colors["core"],
@@ -1315,7 +1315,6 @@ class JarvisHUD(tk.Tk):
             tags="holo"
         )
 
-        # Inner glow
         self.main_canvas.create_oval(
             cx - pulse//2, cy - pulse//2,
             cx + pulse//2, cy + pulse//2,
@@ -1325,10 +1324,14 @@ class JarvisHUD(tk.Tk):
         )
 
         # ============================================================
-        # 5. Holographic Grid Distortion
+        # 5. HOLOGRAPHIC GRID + BLUEPRINT SCAN (merged)
         # ============================================================
+        scan_x = (self.waveform_phase * 8) % 1280  # scanning beam position
+
         for x in range(0, 1280, 60):
             offset = int(math.sin(self.waveform_phase/18 + x/120) * 12 * level)
+
+            # Base grid line
             self.main_canvas.create_line(
                 x, 0 + offset,
                 x, 300 - offset,
@@ -1337,8 +1340,38 @@ class JarvisHUD(tk.Tk):
                 tags="holo"
             )
 
+            # Highlight grid cells near the scan beam
+            if abs(x - scan_x) < 40:
+                self.main_canvas.create_line(
+                    x, 0 + offset,
+                    x, 300 - offset,
+                    fill=colors["scan"],
+                    width=3,
+                    tags="holo"
+                )
+
+        # Horizontal grid lines
+        for y in range(0, 300, 40):
+            self.main_canvas.create_line(
+                0, y,
+                1280, y,
+                fill=colors["grid"],
+                width=1,
+                tags="holo"
+            )
+
+            # Scan highlight
+            if abs(y - (scan_x % 300)) < 20:
+                self.main_canvas.create_line(
+                    0, y,
+                    1280, y,
+                    fill=colors["scan"],
+                    width=2,
+                    tags="holo"
+                )
+
         # ============================================================
-        # 6. Floating Holographic Dust
+        # 6. Floating Dust
         # ============================================================
         for i in range(40):
             dx = (i * 32 + self.waveform_phase * 2) % 1280
@@ -1349,6 +1382,8 @@ class JarvisHUD(tk.Tk):
                 outline="",
                 tags="holo"
             )
+
+        self.waveform_phase += 1
 
     # ============================================================
     # PARTICLE ENGINE
