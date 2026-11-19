@@ -20,6 +20,7 @@ HOST = "localhost"
 PORT = 8765
 
 CLIENTS: Set = set()
+
 STATE = {
     "matrix_mode": "DEFAULT",
     "status": "ONLINE",
@@ -29,7 +30,6 @@ STATE = {
     "daemon_alert": "",
 }
 
-
 # -----------------------------------------
 # BROADCAST & ROUTING
 # -----------------------------------------
@@ -37,7 +37,7 @@ async def broadcast(packet: dict, sender=None):
     """Send a packet to all connected clients except optional sender."""
     message = json.dumps(packet)
     disconnected = set()
-    
+
     for client in CLIENTS:
         if sender is not None and client == sender:
             continue
@@ -46,7 +46,7 @@ async def broadcast(packet: dict, sender=None):
         except Exception as e:
             logger.error(f"[BROADCAST ERROR] {e}")
             disconnected.add(client)
-    
+
     # Clean up disconnected clients
     for client in disconnected:
         CLIENTS.discard(client)
@@ -80,7 +80,7 @@ def cinematic_ack(cmd: str) -> str:
         return "Sync beam established."
     if "daemon" in cmd:
         return "Daemon pulse initiated."
-    
+
     return "Command acknowledged."
 
 
@@ -89,7 +89,7 @@ async def handle_client(websocket, path=None):
     CLIENTS.add(websocket)
     client_id = id(websocket)
     logger.info(f"[CLIENT CONNECTED] {client_id} (total: {len(CLIENTS)})")
-    
+
     # Send current state to new client
     init_packet = {
         "type": "state_sync",
@@ -114,7 +114,6 @@ async def handle_client(websocket, path=None):
 async def handle_packet(packet: dict, sender, client_id: int):
     """Route and process incoming packets."""
     packet_type = packet.get("type", "unknown")
-    
     logger.info(f"[PACKET] type={packet_type} from client {client_id}")
 
     # ---- State Updates ----
@@ -217,3 +216,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+    
