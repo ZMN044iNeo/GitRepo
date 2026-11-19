@@ -1,26 +1,47 @@
 import time
 import threading
 import random
-from datetime import datetime
 import queue
+from datetime import datetime
 
 
 class JarvisSyncClientTK:
     """
     Local event-bus style sync client for JarvisHUD.
     No sockets, just in-process events.
+
+    Usage from the HUD (Tk main thread):
+        self.sync = JarvisSyncClientTK(self)
+        self.sync.start()
+        self.sync.start_polling()
     """
 
-    def __init__(self, hud):
+    def __init__(self, hud, heartbeat_interval=5, max_log=500):
         self.hud = hud
         self.running = False
         self.event_log = []
-        self.heartbeat_interval = 5
+        self.max_log = max_log
+        self.heartbeat_interval = heartbeat_interval
         self.dispatch_queue = queue.Queue()
+        self._polling = False
 
-        # Start background threads
+        # Heartbeat runs in a background thread; it only queues packets.
         threading.Thread(target=self._heartbeat_loop, daemon=True).start()
-        threading.Thread(target=self._dispatch_loop, daemon=True).start()
+
+    # ============================================================
+    # LIFECYCLE
+    # ============================================================
+    def start(self):
+        self.running = True
+
+    def stop(self):
+        self.running = False
+
+    def start_polling(self):
+        """Begin draining the queue. Call from the Tk main thread."""
+        if not self._polling:
+            self._polling = True
+            self._poll()
 
     # ============================================================
     # ARC-ID GENERATOR
@@ -43,30 +64,42 @@ class JarvisSyncClientTK:
             "payload": payload
         }
 
+    def _log(self, packet):
+        self.event_log.append(packet)
+        if len(self.event_log) > self.max_log:
+            del self.event_log[: len(self.event_log) - self.max_log]
+
     # ============================================================
     # PUBLIC SEND API
     # ============================================================
     def send_sync(self, packet_dict):
+        """
+        Queue an event. Expects {"type": "...", "payload": ...}.
+        Safe to call from any thread.
+        """
         packet = self.build_packet(
             packet_dict["type"],
             packet_dict.get("payload", packet_dict.get("value"))
         )
-        self.event_log.append(packet)
+        self._log(packet)
         self.dispatch_queue.put(packet)
 
     # ============================================================
-    # DISPATCH LOOP (THREAD-SAFE)
+    # POLL LOOP (TK MAIN THREAD ONLY)
     # ============================================================
-    def _dispatch_loop(self):
-        while True:
-            packet = self.dispatch_queue.get()
-            # Route via HUD's Tk-safe callback
-            self.hud.after(0, self._route_packet_safe, packet)
+    def _poll(self):
+        try:
+            while True:
+                packet = self.dispatch_queue.get_nowait()
+                self._route_packet(packet)
+        except queue.Empty:
+            pass
+        self.hud.after(50, self._poll)
 
     # ============================================================
     # ROUTER
     # ============================================================
-    def _route_packet_safe(self, packet):
+    def _route_packet(self, packet):
         event = packet["event"]
         payload = packet["payload"]
 
@@ -107,12 +140,13 @@ class JarvisSyncClientTK:
             self.hud.log_chat("sync", f"Unknown event: {event}")
 
     # ============================================================
-    # HEARTBEAT LOOP
+    # HEARTBEAT LOOP (BACKGROUND THREAD, QUEUE ONLY)
     # ============================================================
     def _heartbeat_loop(self):
         while True:
             if self.running:
                 packet = self.build_packet("heartbeat", {"alive": True})
-                self.event_log.append(packet)
+                self._log(packet)
                 self.dispatch_queue.put(packet)
             time.sleep(self.heartbeat_interval)
+            
